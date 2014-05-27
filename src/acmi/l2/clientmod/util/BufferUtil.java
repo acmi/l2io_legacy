@@ -69,7 +69,9 @@ public class BufferUtil {
     }
 
     public static void putString(ByteBuffer buffer, String str, boolean forceAscii){
-        if(forceAscii || isAscii(str))
+        if (str == null || str.isEmpty())
+            putCompactInt(buffer, 0);
+        else if(forceAscii || isAscii(str))
             putBytes(buffer, str);
         else
             putChars(buffer, str);

@@ -37,6 +37,7 @@ public class UnrealPackageFile implements Closeable {
     public static int BUFFER_SIZE = 1 << 22;
 
     private RandomAccessFile file;
+    private final String packageName;
 
     private int version;
     private int licensee;
@@ -54,6 +55,8 @@ public class UnrealPackageFile implements Closeable {
 
     public UnrealPackageFile(RandomAccessFile file) throws IOException {
         this.file = Objects.requireNonNull(file);
+        String fileName = new File(file.getPath()).getName();
+        this.packageName = fileName.substring(0, fileName.indexOf('.'));
 
         file.setPosition(0);
 
@@ -67,6 +70,10 @@ public class UnrealPackageFile implements Closeable {
         readNameTable();
         readImportTable();
         readExportTable();
+    }
+
+    public String getPackageName(){
+        return packageName;
     }
 
     public int getVersion() {
@@ -745,6 +752,14 @@ public class UnrealPackageFile implements Closeable {
                 getUnrealPackage().file.setPosition(IMPORT_OFFSET_OFFSET);
                 getUnrealPackage().file.writeInt(importTablePosition);
             }
+        }
+
+        @Override
+        public String getObjectFullName() {
+            String str = super.getObjectFullName();
+            if (getObjectPackage() == null)
+                str = getUnrealPackage().getPackageName()+"."+str;
+            return str;
         }
     }
 

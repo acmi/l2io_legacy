@@ -761,6 +761,10 @@ public class UnrealPackageFile implements Closeable {
                 str = getUnrealPackage().getPackageName()+"."+str;
             return str;
         }
+
+        public String getObjectInnerFullName(){
+            return super.getObjectFullName();
+        }
     }
 
     public static final class ImportEntry extends UnrealPackageFile.Entry {

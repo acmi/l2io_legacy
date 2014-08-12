@@ -46,7 +46,7 @@ public interface UnrealPackageConstants {
             ObjectFlag.LoadForServer,
             ObjectFlag.LoadForEdit);
 
-    public enum PackageFlag{
+    public enum PackageFlag {
         /**
          * Allow downloading package
          */
@@ -84,16 +84,16 @@ public interface UnrealPackageConstants {
 
         @Override
         public String toString() {
-            return "PKG_"+name();
+            return "PKG_" + name();
         }
 
-        public static List<PackageFlag> getFlags(int flags){
+        public static List<PackageFlag> getFlags(int flags) {
             return Arrays.stream(values())
                     .filter(e -> (e.getMask() & flags) != 0)
                     .collect(Collectors.toList());
         }
 
-        public static int getFlags(PackageFlag ... flags){
+        public static int getFlags(PackageFlag... flags) {
             int v = 0;
             for (PackageFlag flag : flags)
                 v |= flag.getMask();
@@ -101,7 +101,7 @@ public interface UnrealPackageConstants {
         }
     }
 
-    public enum ObjectFlag{
+    public enum ObjectFlag {
         /**
          * Object is transactional.
          */
@@ -235,16 +235,16 @@ public interface UnrealPackageConstants {
 
         @Override
         public String toString() {
-            return "RF_"+name();
+            return "RF_" + name();
         }
 
-        public static List<ObjectFlag> getFlags(int flags){
+        public static List<ObjectFlag> getFlags(int flags) {
             return Arrays.stream(values())
                     .filter(e -> (e.getMask() & flags) != 0)
                     .collect(Collectors.toList());
         }
 
-        public static int getFlags(ObjectFlag ... flags){
+        public static int getFlags(ObjectFlag... flags) {
             int v = 0;
             for (ObjectFlag flag : flags)
                 v |= flag.getMask();

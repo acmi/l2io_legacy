@@ -25,12 +25,25 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
-import static acmi.l2.clientmod.util.ByteUtil.isAscii;
 
 public class BufferUtil {
-    public static int getCompactInt(ByteBuffer input)  {
+    private static Charset DEFAULT_CHARSET;
+    private static CharsetEncoder DEFAULT_ENCODER;
+    private static final Charset UTF16LE = Charset.forName("utf-16le");
+
+    static {
+        setDefaultCharset(Charset.forName("ISO_8859-1"));
+    }
+
+    public static void setDefaultCharset(Charset defaultCharset) {
+        DEFAULT_CHARSET = defaultCharset;
+        DEFAULT_ENCODER = defaultCharset.newEncoder();
+    }
+
+    public static int getCompactInt(ByteBuffer input) {
         int output = 0;
         boolean signed = false;
         for (int i = 0; i < 5; i++) {
@@ -58,37 +71,47 @@ public class BufferUtil {
         buffer.put(compactIntToByteArray(v));
     }
 
-    public static String getString(ByteBuffer buffer){
+    public static String getString(ByteBuffer buffer) {
+        return getString(buffer, DEFAULT_CHARSET);
+    }
+
+    public static String getString(ByteBuffer buffer, Charset charset) {
         int len = getCompactInt(buffer);
         if (len == 0)
             return "";
 
         byte[] bytes = new byte[len > 0 ? len : -2 * len];
         buffer.get(bytes);
-        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), Charset.forName(len > 0 ? "ascii" : "utf-16le"));
+        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), len > 0 ? charset : UTF16LE);
     }
 
-    public static void putString(ByteBuffer buffer, String str, boolean forceAscii){
+    public static void putString(ByteBuffer buffer, String str) {
+        putString(buffer, str, null);
+    }
+
+    public static void putString(ByteBuffer buffer, String str, Charset charset) {
         if (str == null || str.isEmpty())
             putCompactInt(buffer, 0);
-        else if(forceAscii || isAscii(str))
+        else if (charset != null)
+            putBytes(buffer, str, charset);
+        else if (DEFAULT_ENCODER.canEncode(str))
             putBytes(buffer, str);
         else
             putChars(buffer, str);
     }
 
-    public static void putString(ByteBuffer buffer, String s){
-        putString(buffer, s, false);
+    public static void putBytes(ByteBuffer buffer, String str) {
+        putBytes(buffer, str, DEFAULT_CHARSET);
     }
 
-    private static void putBytes(ByteBuffer buffer, String s) {
-        byte[] strBytes = (s + '\0').getBytes(Charset.forName("ascii"));
+    public static void putBytes(ByteBuffer buffer, String str, Charset charset) {
+        byte[] strBytes = (str + '\0').getBytes(charset);
         putCompactInt(buffer, strBytes.length);
         buffer.put(strBytes);
     }
 
-    private static void putChars(ByteBuffer buffer, String s) {
-        byte[] strBytes = (s + '\0').getBytes(Charset.forName("utf-16le"));
+    public static void putChars(ByteBuffer buffer, String str) {
+        byte[] strBytes = (str + '\0').getBytes(UTF16LE);
         putCompactInt(buffer, -strBytes.length);
         buffer.put(strBytes);
     }

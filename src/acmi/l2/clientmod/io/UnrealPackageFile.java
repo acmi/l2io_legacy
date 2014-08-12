@@ -30,7 +30,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static acmi.l2.clientmod.io.UnrealPackageConstants.*;
-import static acmi.l2.clientmod.util.BufferUtil.*;
+import static acmi.l2.clientmod.util.BufferUtil.putCompactInt;
+import static acmi.l2.clientmod.util.BufferUtil.putString;
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
 
 public class UnrealPackageFile implements Closeable {
@@ -72,7 +73,7 @@ public class UnrealPackageFile implements Closeable {
         readExportTable();
     }
 
-    public String getPackageName(){
+    public String getPackageName() {
         return packageName;
     }
 
@@ -454,7 +455,7 @@ public class UnrealPackageFile implements Closeable {
     private void writeNameTable(List<NameEntry> nameTable) throws IOException {
         buffer.clear();
         nameTable.stream().forEach(entry -> {
-            putString(buffer, entry.getName());
+            putString(buffer, entry.getName(), file.getCharset());
             buffer.putInt(entry.getFlags());
         });
         buffer.flip();
@@ -758,11 +759,11 @@ public class UnrealPackageFile implements Closeable {
         public String getObjectFullName() {
             String str = super.getObjectFullName();
             if (getObjectPackage() == null)
-                str = getUnrealPackage().getPackageName()+"."+str;
+                str = getUnrealPackage().getPackageName() + "." + str;
             return str;
         }
 
-        public String getObjectInnerFullName(){
+        public String getObjectInnerFullName() {
             return super.getObjectFullName();
         }
     }

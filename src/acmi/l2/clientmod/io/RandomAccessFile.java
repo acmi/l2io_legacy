@@ -21,12 +21,15 @@
  */
 package acmi.l2.clientmod.io;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
-import static acmi.l2.clientmod.util.ByteUtil.isAscii;
 
 public class RandomAccessFile implements Closeable {
     protected final java.io.RandomAccessFile file;
@@ -36,7 +39,7 @@ public class RandomAccessFile implements Closeable {
     protected final int xorKey;
     protected final int startOffset;
 
-    private boolean asciiOnly;
+    private CharsetEncoder charsetEncoder = Charset.forName("ISO_8859-1").newEncoder();
 
     public RandomAccessFile(String path, boolean readOnly) throws IOException {
         this(new File(path), readOnly);
@@ -61,7 +64,7 @@ public class RandomAccessFile implements Closeable {
                 default:
                     throw new IOException("Crypt " + cryptVer + " is not supported.");
             }
-        }else{
+        } else {
             startOffset = 0;
             cryptVer = 0;
             xorKey = 0;
@@ -82,7 +85,7 @@ public class RandomAccessFile implements Closeable {
         return ind & 0xff;
     }
 
-    public String getPath(){
+    public String getPath() {
         return path;
     }
 
@@ -90,12 +93,12 @@ public class RandomAccessFile implements Closeable {
         return cryptVer;
     }
 
-    public boolean isAsciiOnly() {
-        return asciiOnly;
+    public Charset getCharset() {
+        return charsetEncoder.charset();
     }
 
-    public void setAsciiOnly(boolean asciiOnly) {
-        this.asciiOnly = asciiOnly;
+    public void setCharset(Charset charset) {
+        this.charsetEncoder = charset.newEncoder();
     }
 
     public void setPosition(int pos) throws IOException {
@@ -106,7 +109,7 @@ public class RandomAccessFile implements Closeable {
         return (int) file.getFilePointer() - startOffset;
     }
 
-    public void setLength(int newLength) throws IOException{
+    public void setLength(int newLength) throws IOException {
         file.setLength(newLength);
     }
 
@@ -126,7 +129,7 @@ public class RandomAccessFile implements Closeable {
             return file.read();
     }
 
-    public void readFully(byte[] b) throws IOException{
+    public void readFully(byte[] b) throws IOException {
         readFully(b, 0, b.length);
     }
 
@@ -155,7 +158,7 @@ public class RandomAccessFile implements Closeable {
         int ch2 = this.read();
         if ((ch1 | ch2) < 0)
             throw new EOFException();
-        short i = (short)(ch1 + (ch2 << 8));
+        short i = (short) (ch1 + (ch2 << 8));
 
         if (cryptVer != 0)
             i ^= xorKey;
@@ -174,7 +177,7 @@ public class RandomAccessFile implements Closeable {
         int ch4 = file.read();
         if ((ch1 | ch2 | ch3 | ch4) < 0)
             throw new EOFException();
-        int i =  (ch1 + (ch2 << 8) + (ch3 << 16) + (ch4 << 24));
+        int i = (ch1 + (ch2 << 8) + (ch3 << 16) + (ch4 << 24));
 
         if (cryptVer != 0)
             i ^= xorKey;
@@ -207,17 +210,17 @@ public class RandomAccessFile implements Closeable {
     }
 
     public long readLong() throws IOException {
-        return ((((long)readUnsignedByte())      ) |
-                (((long)readUnsignedByte()) <<  8) |
-                (((long)readUnsignedByte()) << 16) |
-                (((long)readUnsignedByte()) << 24) |
-                (((long)readUnsignedByte()) << 32) |
-                (((long)readUnsignedByte()) << 40) |
-                (((long)readUnsignedByte()) << 48) |
-                (((long)readUnsignedByte()) << 56));
+        return ((((long) readUnsignedByte())) |
+                (((long) readUnsignedByte()) << 8) |
+                (((long) readUnsignedByte()) << 16) |
+                (((long) readUnsignedByte()) << 24) |
+                (((long) readUnsignedByte()) << 32) |
+                (((long) readUnsignedByte()) << 40) |
+                (((long) readUnsignedByte()) << 48) |
+                (((long) readUnsignedByte()) << 56));
     }
 
-    public float readFloat() throws IOException{
+    public float readFloat() throws IOException {
         return Float.intBitsToFloat(readInt());
     }
 
@@ -228,10 +231,10 @@ public class RandomAccessFile implements Closeable {
 
         byte[] bytes = new byte[len > 0 ? len : -2 * len];
         readFully(bytes);
-        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), Charset.forName(len > 0 ? "ascii" : "utf-16le")).intern();
+        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), len > 0 ? charsetEncoder.charset() : Charset.forName("utf-16le")).intern();
     }
 
-    public String readUTF() throws IOException{
+    public String readUTF() throws IOException {
         int len = readInt();
         if (len == 0)
             return "";
@@ -289,14 +292,14 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void writeLong(long val) throws IOException {
-        write((int)val);
-        write((int)(val >>  8));
-        write((int)(val >>  16));
-        write((int)(val >>  24));
-        write((int)(val >>  32));
-        write((int)(val >>  40));
-        write((int)(val >>  48));
-        write((int)(val >>  56));
+        write((int) val);
+        write((int) (val >> 8));
+        write((int) (val >> 16));
+        write((int) (val >> 24));
+        write((int) (val >> 32));
+        write((int) (val >> 40));
+        write((int) (val >> 48));
+        write((int) (val >> 56));
     }
 
     public void writeFloat(float val) throws IOException {
@@ -304,7 +307,7 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void writeBytes(String s) throws IOException {
-        byte[] strBytes = (s + '\0').getBytes("ascii");
+        byte[] strBytes = (s + '\0').getBytes(charsetEncoder.charset());
         writeCompactInt(strBytes.length);
         write(strBytes);
     }
@@ -316,7 +319,7 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void writeLine(String s) throws IOException {
-        if (asciiOnly || isAscii(s))
+        if (charsetEncoder.canEncode(s))
             writeBytes(s);
         else
             writeChars(s);

@@ -36,7 +36,7 @@ public class ByteUtil {
         if (negative) bytes[0] |= 0b10000000;
 
         int size = 5;
-        for (int i=4; i>0; i--) {
+        for (int i = 4; i > 0; i--) {
             if (bytes[i] != 0)
                 break;
             size--;
@@ -46,16 +46,8 @@ public class ByteUtil {
         for (int i = 0; i < size; i++) {
             if (i != size - 1)
                 bytes[i] |= i == 0 ? 0b01000000 : 0b10000000;
-            res[i] = (byte)bytes[i];
+            res[i] = (byte) bytes[i];
         }
         return res;
-    }
-
-    public static boolean isAscii(String str) {
-        for (int i = 0; i < str.length(); i++) {
-            if (str.charAt(i) > 0x7f)
-                return false;
-        }
-        return true;
     }
 }

@@ -181,7 +181,7 @@ public class UnrealPackageFile implements Closeable {
         return getNameTable().get(index).getName();
     }
 
-    public UnrealPackageFile.Entry objectReference(int index) {
+    public Entry objectReference(int index) {
         if (index > 0)
             return getExportTable().get(index - 1);
         else if (index < 0)
@@ -624,12 +624,12 @@ public class UnrealPackageFile implements Closeable {
             return getUnrealPackage().objectReference(objectPackage);
         }
 
-        public UnrealPackageFile.NameEntry getObjectName() {
+        public NameEntry getObjectName() {
             return getUnrealPackage().getNameTable().get(objectName);
         }
 
         public String getObjectFullName() {
-            UnrealPackageFile.Entry pckg = getObjectPackage();
+            Entry pckg = getObjectPackage();
             if (pckg == null)
                 return getObjectName().getName();
             else
@@ -657,7 +657,7 @@ public class UnrealPackageFile implements Closeable {
         }
     }
 
-    public static final class ExportEntry extends UnrealPackageFile.Entry {
+    public static final class ExportEntry extends Entry {
         private int objectClass;
         private int objectSuperClass;
         private int objectFlags;
@@ -677,11 +677,11 @@ public class UnrealPackageFile implements Closeable {
             return getIndex() + 1;
         }
 
-        public UnrealPackageFile.Entry getObjectClass() {
+        public Entry getObjectClass() {
             return getUnrealPackage().objectReference(objectClass);
         }
 
-        public UnrealPackageFile.Entry getObjectSuperClass() {
+        public Entry getObjectSuperClass() {
             return getUnrealPackage().objectReference(objectSuperClass);
         }
 
@@ -768,7 +768,7 @@ public class UnrealPackageFile implements Closeable {
         }
     }
 
-    public static final class ImportEntry extends UnrealPackageFile.Entry {
+    public static final class ImportEntry extends Entry {
         private int classPackage;
         private int className;
 
@@ -782,11 +782,11 @@ public class UnrealPackageFile implements Closeable {
             return -(getIndex() + 1);
         }
 
-        public UnrealPackageFile.NameEntry getClassPackage() {
+        public NameEntry getClassPackage() {
             return getUnrealPackage().getNameTable().get(classPackage);
         }
 
-        public UnrealPackageFile.NameEntry getClassName() {
+        public NameEntry getClassName() {
             return getUnrealPackage().getNameTable().get(className);
         }
 

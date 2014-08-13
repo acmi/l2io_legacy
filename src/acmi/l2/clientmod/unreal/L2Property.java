@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static acmi.l2.clientmod.unreal.ToT3D.toT3DString;
+
 public class L2Property {
     private Property template;
     private Object[] value;
@@ -39,7 +41,7 @@ public class L2Property {
 
     @Override
     public String toString() {
-        return getName() + "=" + Arrays.toString(value);
+        return "["+template.getCategory()+"]"+template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
     }
 
     public List<String> values(ClassHelper classHelper) throws IOException {
@@ -59,7 +61,7 @@ public class L2Property {
         } else if (template instanceof ObjectProperty) {
             for (Object aValue : value) {
                 UnrealPackageFile.Entry entry = up.objectReference((Integer) aValue);
-                result.add(entry.toT3DString());
+                result.add(toT3DString(entry));
             }
         } else if (template instanceof NameProperty) {
             for (int i = 0; i < value.length; i++) {
@@ -102,7 +104,7 @@ public class L2Property {
                 if (array)
                     s += "(" + i + ")";
                 UnrealPackageFile.Entry entry = up.objectReference((Integer) value[i]);
-                s += "=" + Objects.toString(entry.toT3DString());
+                s += "=" + toT3DString(entry);
                 result.add(s);
             }
         } else if (template instanceof NameProperty) {

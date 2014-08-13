@@ -18,6 +18,7 @@ public class ClassHelper implements AutoCloseable {
 
     private final Map<String, UnrealPackageFile> classPackages = new HashMap<>();
     private final Map<String, List<Field>> structCache = new HashMap<>();
+    private final Map<String, UClass> classCache = new HashMap<>();
 
     private final PropertiesUtil propertiesUtil;
 
@@ -37,7 +38,7 @@ public class ClassHelper implements AutoCloseable {
         return propertiesUtil;
     }
 
-    public Struct loadStruct(String className) throws IOException {
+    private Struct loadStruct(String className) throws IOException {
         String[] path = className.split("\\.", 2);
         UnrealPackageFile up = getClassPackage(path[0]);
         UnrealPackageFile.ExportEntry entry = up.getExportTable().stream()
@@ -74,36 +75,41 @@ public class ClassHelper implements AutoCloseable {
     public Optional<List<Field>> getStruct(String structName) {
         if (!structCache.containsKey(structName)) {
             try {
-                Struct struct = loadStruct(structName);
-
-                List<Field> fields = new ArrayList<>();
-
-                Struct tmp = struct;
-                while (tmp != null) {
-                    UnrealPackageFile.ExportEntry childEntry = (UnrealPackageFile.ExportEntry) tmp.getChild();
-                    while (childEntry != null) {
-                        Field field = loadField(childEntry);
-
-                        fields.add(field);
-
-                        childEntry = field.getNext();
-                    }
-
-                    UnrealPackageFile.Entry superStruct = tmp.getEntry().getObjectSuperClass();
-                    tmp = superStruct != null ? loadStruct(superStruct.getObjectFullName()) : null;
-                }
-
-                structCache.put(structName, Collections.unmodifiableList(fields));
-
-                if (struct instanceof UClass) {
-                    ((UClass) struct).readProperties();
-                }
+                load(structName);
             } catch (IOException e) {
-                //log.log(Level.WARNING, "Couldn't load structure " + structName, e);
+                //log.log(Level.WARNING, "", e);
             }
         }
 
         return Optional.ofNullable(structCache.get(structName));
+    }
+
+    public Optional<UClass> getUClass(String className) {
+        if (!classCache.containsKey(className)) {
+            try {
+                load(className);
+            } catch (IOException e) {
+                //log.log(Level.WARNING, "", e);
+            }
+        }
+
+        return Optional.ofNullable(classCache.get(className));
+    }
+
+    public List<L2Property> getDefaults(String className) {
+        List<L2Property> properties = new ArrayList<>();
+
+        UClass uClass = getUClass(className).orElse(null);
+        while (uClass != null){
+            properties.addAll(uClass.getProperties());
+
+            if (uClass.getEntry().getObjectSuperClass() == null)
+                uClass = null;
+            else
+                uClass = getUClass(uClass.getEntry().getObjectSuperClass().getObjectFullName()).orElse(null);
+        }
+
+        return properties;
     }
 
     Field loadField(UnrealPackageFile.ExportEntry entry) throws IOException {
@@ -118,6 +124,43 @@ public class ClassHelper implements AutoCloseable {
         } catch (ReflectiveOperationException roe) {
             log.log(Level.SEVERE, "Couldn't load field " + entry, roe);
             throw new RuntimeException(roe);
+        }
+    }
+
+    private void load(String structName) throws IOException {
+        List<Struct> list = new ArrayList<>();
+
+        Struct tmp = loadStruct(structName);
+        while (tmp != null) {
+            list.add(tmp);
+
+            UnrealPackageFile.Entry superStruct = tmp.getEntry().getObjectSuperClass();
+            tmp = superStruct != null ? loadStruct(superStruct.getObjectFullName()) : null;
+        }
+
+        Collections.reverse(list);
+
+        List<Field> fields = new ArrayList<>();
+        for (Struct struct : list) {
+            String name = struct.getEntry().getObjectFullName();
+
+            UnrealPackageFile.ExportEntry childEntry = (UnrealPackageFile.ExportEntry) struct.getChild();
+            while (childEntry != null) {
+                Field field = loadField(childEntry);
+
+                fields.add(field);
+
+                childEntry = field.getNext();
+            }
+
+            if (!structCache.containsKey(name))
+                structCache.put(name, Collections.unmodifiableList(new ArrayList<>(fields)));
+
+            if (struct instanceof UClass && !classCache.containsKey(name)) {
+                UClass uClass = (UClass) struct;
+                uClass.readProperties();
+                classCache.put(name, uClass);
+            }
         }
     }
 }

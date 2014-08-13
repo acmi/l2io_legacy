@@ -30,17 +30,21 @@ import java.nio.charset.CharsetEncoder;
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
 
 public class BufferUtil {
-    private static Charset DEFAULT_CHARSET;
-    private static CharsetEncoder DEFAULT_ENCODER;
+    private static Charset defaultCharset;
+    private static CharsetEncoder charsetEncoder;
     private static final Charset UTF16LE = Charset.forName("utf-16le");
 
     static {
         setDefaultCharset(Charset.forName("ISO_8859-1"));
     }
 
+    public static Charset getDefaultCharset(){
+        return defaultCharset;
+    }
+
     public static void setDefaultCharset(Charset defaultCharset) {
-        DEFAULT_CHARSET = defaultCharset;
-        DEFAULT_ENCODER = defaultCharset.newEncoder();
+        BufferUtil.defaultCharset = defaultCharset;
+        charsetEncoder = defaultCharset.newEncoder();
     }
 
     public static int getCompactInt(ByteBuffer input) {
@@ -72,7 +76,7 @@ public class BufferUtil {
     }
 
     public static String getString(ByteBuffer buffer) {
-        return getString(buffer, DEFAULT_CHARSET);
+        return getString(buffer, defaultCharset);
     }
 
     public static String getString(ByteBuffer buffer, Charset charset) {
@@ -94,14 +98,14 @@ public class BufferUtil {
             putCompactInt(buffer, 0);
         else if (charset != null)
             putBytes(buffer, str, charset);
-        else if (DEFAULT_ENCODER.canEncode(str))
+        else if (charsetEncoder.canEncode(str))
             putBytes(buffer, str);
         else
             putChars(buffer, str);
     }
 
     public static void putBytes(ByteBuffer buffer, String str) {
-        putBytes(buffer, str, DEFAULT_CHARSET);
+        putBytes(buffer, str, defaultCharset);
     }
 
     public static void putBytes(ByteBuffer buffer, String str, Charset charset) {
@@ -114,5 +118,28 @@ public class BufferUtil {
         byte[] strBytes = (str + '\0').getBytes(UTF16LE);
         putCompactInt(buffer, -strBytes.length);
         buffer.put(strBytes);
+    }
+
+    public static String getUTF(ByteBuffer buffer){
+        int len = buffer.getInt();
+        if (len == 0)
+            return "";
+        if (len < 0)
+            throw new IllegalStateException("Invalid string length: "+len);
+        byte[] bytes = new byte[len];
+        buffer.get(bytes);
+        return new String(bytes, UTF16LE);
+    }
+
+    public static void putUTF(ByteBuffer buffer, String str){
+        if (str == null || str.isEmpty()) {
+            buffer.putInt(0);
+            return;
+        }
+
+        byte[] bytes = str.getBytes(UTF16LE);
+
+        buffer.putInt(bytes.length);
+        buffer.put(bytes);
     }
 }

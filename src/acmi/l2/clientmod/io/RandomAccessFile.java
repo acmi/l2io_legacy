@@ -28,10 +28,25 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
 
 public class RandomAccessFile implements Closeable {
+    private static Charset defalutCharset;
+
+    public static void setDefaultCharset(Charset charset){
+        defalutCharset = Objects.requireNonNull(charset);
+    }
+
+    public static Charset getDefalutCharset() {
+        return defalutCharset;
+    }
+
+    static {
+        setDefaultCharset(Charset.forName("ISO_8859-1"));
+    }
+
     protected final java.io.RandomAccessFile file;
     private final String path;
 
@@ -39,7 +54,7 @@ public class RandomAccessFile implements Closeable {
     protected final int xorKey;
     protected final int startOffset;
 
-    private CharsetEncoder charsetEncoder = Charset.forName("ISO_8859-1").newEncoder();
+    private CharsetEncoder charsetEncoder;
 
     public RandomAccessFile(String path, boolean readOnly) throws IOException {
         this(new File(path), readOnly);
@@ -69,6 +84,8 @@ public class RandomAccessFile implements Closeable {
             cryptVer = 0;
             xorKey = 0;
         }
+
+        setCharset(getDefalutCharset());
     }
 
     private String getCryptHeader() throws IOException {

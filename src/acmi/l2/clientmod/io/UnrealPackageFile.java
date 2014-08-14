@@ -242,21 +242,6 @@ public class UnrealPackageFile implements Closeable {
         }
     }
 
-    public void addNameEntries(Map<String, Integer> names) throws IOException {
-        updateNameTable(nameTable -> names.forEach((k, v) -> {
-            NameEntry entry = new NameEntry(null, 0, k, v);
-            if (!nameTable.contains(entry))
-                nameTable.add(entry);
-        }));
-    }
-
-    public void updateNameEntry(int index, String newName, int newFlags) throws IOException {
-        updateNameTable(nameTable -> {
-            nameTable.remove(index);
-            nameTable.add(index, new NameEntry(this, index, newName, newFlags));
-        });
-    }
-
     public void updateNameTable(Consumer<List<NameEntry>> transformation) throws IOException {
         List<NameEntry> nameTable = new ArrayList<>(getNameTable());
 
@@ -286,6 +271,40 @@ public class UnrealPackageFile implements Closeable {
         readNameTable();
     }
 
+    public void updateImportTable(Consumer<List<ImportEntry>> transformation) throws IOException {
+        List<ImportEntry> importTable = new ArrayList<>(getImportTable());
+
+        transformation.accept(importTable);
+
+        file.setPosition(getImportTableOffset());
+        writeImportTable(importTable);
+        int newExportTablePos = file.getPosition();
+        writeExportTable(getExportTable());
+        file.setLength(file.getPosition());
+
+        file.setPosition(EXPORT_OFFSET_OFFSET);
+        file.writeInt(newExportTablePos);
+        file.setPosition(IMPORT_COUNT_OFFSET);
+        file.writeInt(importTable.size());
+
+        readImportTable();
+    }
+
+    public void addNameEntries(Map<String, Integer> names) throws IOException {
+        updateNameTable(nameTable -> names.forEach((k, v) -> {
+            NameEntry entry = new NameEntry(null, 0, k, v);
+            if (!nameTable.contains(entry))
+                nameTable.add(entry);
+        }));
+    }
+
+    public void updateNameEntry(int index, String newName, int newFlags) throws IOException {
+        updateNameTable(nameTable -> {
+            nameTable.remove(index);
+            nameTable.add(index, new NameEntry(this, index, newName, newFlags));
+        });
+    }
+
     public void addImportEntries(Map<String, String> imports, boolean force) throws IOException {
         Map<String, Integer> namesToAdd = new HashMap<>();
         imports.forEach((k, v) -> {
@@ -301,47 +320,35 @@ public class UnrealPackageFile implements Closeable {
         });
         addNameEntries(namesToAdd);
 
-        List<ImportEntry> importTable = new ArrayList<>(getImportTable());
-        for (Map.Entry<String, String> entry : imports.entrySet()) {
-            String[] namePath = entry.getKey().split("\\.");
-            String[] classPath = entry.getValue().split("\\.");
+        updateImportTable(importTable -> {
+            for (Map.Entry<String, String> entry : imports.entrySet()) {
+                String[] namePath = entry.getKey().split("\\.");
+                String[] classPath = entry.getValue().split("\\.");
 
-            int pckg = 0;
-            ImportEntry importEntry;
-            for (int i = 0; i < namePath.length - 1; i++) {
-                importEntry = new ImportEntry(this, 0,
-                        nameReference("Core"),
-                        nameReference("Package"),
-                        pckg,
-                        nameReference(namePath[i]));
-                if ((pckg = importTable.indexOf(importEntry)) == -1) {
-                    importTable.add(importEntry);
-                    pckg = importTable.size() - 1;
+                int pckg = 0;
+                ImportEntry importEntry;
+                for (int i = 0; i < namePath.length - 1; i++) {
+                    importEntry = new ImportEntry(this, 0,
+                            nameReference("Core"),
+                            nameReference("Package"),
+                            pckg,
+                            nameReference(namePath[i]));
+                    if ((pckg = importTable.indexOf(importEntry)) == -1) {
+                        importTable.add(importEntry);
+                        pckg = importTable.size() - 1;
+                    }
+                    pckg = -(pckg + 1);
                 }
-                pckg = -(pckg + 1);
+
+                importEntry = new ImportEntry(this, 0,
+                        nameReference(classPath[0]),
+                        nameReference(classPath[1]),
+                        pckg,
+                        nameReference(namePath[namePath.length - 1]));
+                if (force || importTable.indexOf(importEntry) == -1)
+                    importTable.add(importEntry);
             }
-
-            importEntry = new ImportEntry(this, 0,
-                    nameReference(classPath[0]),
-                    nameReference(classPath[1]),
-                    pckg,
-                    nameReference(namePath[namePath.length - 1]));
-            if (force || importTable.indexOf(importEntry) == -1)
-                importTable.add(importEntry);
-        }
-
-        file.setPosition(getImportTableOffset());
-        writeImportTable(importTable);
-        int newExportTablePos = file.getPosition();
-        writeExportTable(getExportTable());
-        file.setLength(file.getPosition());
-
-        file.setPosition(EXPORT_OFFSET_OFFSET);
-        file.writeInt(newExportTablePos);
-        file.setPosition(IMPORT_COUNT_OFFSET);
-        file.writeInt(importTable.size());
-
-        readImportTable();
+        });
     }
 
     public void addExportEntry(String objectName, String objectClass, String objectSuperClass, byte[] data, int flags) throws IOException {
@@ -417,27 +424,108 @@ public class UnrealPackageFile implements Closeable {
         readExportTable();
     }
 
+//    public void renameExport(String nameSrc, String nameDst) throws IOException {
+//        if (objectReference(nameSrc) <= 0){
+//            log.log(Level.WARNING, "ExportEntry not found: "+nameSrc);
+//            return;
+//        }
+//        if (objectReference(nameDst) != 0){
+//            log.log(Level.WARNING, "Entry already exist: "+nameDst);
+//            return;
+//        }
+//
+//        List<String> namesToAdd = new ArrayList<>();
+//        String[] namePath = nameDst.split("\\.");
+//        if (namePath.length > 1 && objectReference("Core.Package") == 0)
+//            addImportEntries(Collections.singletonMap("Core.Package", "Core.Class"));
+//        for (String s : namePath)
+//            if (nameReference(s) == -1)
+//                namesToAdd.add(s);
+//        String[] newNames = namesToAdd.toArray(new String[namesToAdd.size()]);
+//        addNameEntries(newNames);
+//
+//        List<NameEntry> nameTable = getNameTable();
+//        List<ImportEntry> importTable = getImportTable();
+//
+//        file.setPosition(getDataEndOffset());
+//        List<ExportEntry> exportTable = new ArrayList<>(getExportTable());
+//        int pckgInd = objectReference("Core.Package");
+//        byte[] pckgData = L2RandomAccessFile.compactIntToByteArray(getNameTable().indexOf(new NameEntry("None")));
+//        int pckg = 0;
+//        ExportEntry exportEntry;
+//        for (int i = 0; i < namePath.length - 1; i++) {
+//            exportEntry = new ExportEntry(
+//                    pckgInd,
+//                    0,
+//                    pckg,
+//                    nameReference(namePath[i]),
+//                    RF_Public | RF_LoadForServer | RF_LoadForEdit,
+//                    pckgData.length, file.getPosition());
+//            if ((pckg = exportTable.indexOf(exportEntry)) == -1) {
+//                exportTable.add(exportEntry);
+//                pckg = exportTable.size() - 1;
+//                file.write(pckgData);
+//                log.log(Level.INFO, "ExportEntry added: "+exportEntry);
+//            }
+//            pckg++;
+//        }
+//        for (ExportEntry entry : exportTable) {
+//            if (entry.getAbsoluteName().equalsIgnoreCase(nameSrc)) {
+//                log.log(Level.INFO, "ExportEntry renamed: "+entry);
+//                entry.objectPackage = pckg;
+//                entry.objectName = nameReference(namePath[namePath.length - 1]);
+//                //log.log(Level.INFO, "New ExportEntry name: "+entry);
+//                break;
+//            }
+//        }
+//
+//        int nameTablePosition = file.getPosition();
+//        writeNameTable(nameTable);
+//        int importTablePosition = file.getPosition();
+//        writeImportTable(importTable);
+//        int exportTablePosition = file.getPosition();
+//        writeExportTable(exportTable);
+//
+//        setNameTableOffset(nameTablePosition);
+//        setExportTableOffset(exportTablePosition);
+//        setExportTableCount(exportTable.size());
+//        setImportTableOffset(importTablePosition);
+//
+//        names = null;
+//        imports = null;
+//        exports = null;
+//    }
+
+//    public void removeExport(String className) throws IOException{
+//        if (objectReference("Core.Package") == 0)
+//            addImportEntries(Collections.singletonMap("Core.Package", "Core.Class"), false);
+//
+//        int pckgInd = objectReference("Core.Package");
+//        byte[] pckgData = compactIntToByteArray(nameReference("None"));
+//
+//        List<ExportEntry> exportTable = getExportTable();
+//
+//        for (ExportEntry entry : exportTable){
+//            if (entry.getObjectClass().getObjectFullName().equalsIgnoreCase(className)){
+//                entry.objectClass = pckgInd;
+//                entry.objectSuperClass = 0;
+//                entry.objectFlags =  ObjectFlag.getFlags(ObjectFlag.Public, ObjectFlag.LoadForServer, ObjectFlag.LoadForEdit);
+//                entry.setObjectRawData(pckgData, false);
+//            }
+//        }
+//
+//        file.setPosition(getExportTableOffset());
+//        writeExportTable(exportTable);
+//        exports = null;
+//    }
+
     public void renameImport(int index, String importDst) throws IOException {
         addImportEntries(
                 Collections.singletonMap(importDst, getImportTable().get(index).getFullClassName()),
                 true
         );
 
-        List<ImportEntry> importTable = new ArrayList<>(getImportTable());
-        importTable.set(index, importTable.remove(importTable.size() - 1));
-
-        file.setPosition(getImportTableOffset());
-        writeImportTable(importTable);
-        int newExportTablePos = file.getPosition();
-        writeExportTable(getExportTable());
-        file.setLength(file.getPosition());
-
-        file.setPosition(EXPORT_OFFSET_OFFSET);
-        file.writeInt(newExportTablePos);
-        file.setPosition(IMPORT_COUNT_OFFSET);
-        file.writeInt(importTable.size());
-
-        readImportTable();
+        updateImportTable(importTable -> importTable.set(index, importTable.remove(importTable.size() - 1)));
     }
 
     public void changeImportClass(int index, String importDst) throws IOException {
@@ -449,20 +537,11 @@ public class UnrealPackageFile implements Closeable {
                 .filter(s -> nameReference(s) == -1)
                 .collect(Collectors.toMap(v -> v, v -> PACKAGE_FLAGS)));
 
-        ImportEntry entry = getImportTable().get(index);
-        entry.classPackage = nameReference(clazz[0]);
-        entry.className = nameReference(clazz[1]);
-
-        file.setPosition(getImportTableOffset());
-        writeImportTable(getImportTable());
-        int newExportTablePos = file.getPosition();
-        writeExportTable(getExportTable());
-        file.setLength(file.getPosition());
-
-        file.setPosition(EXPORT_OFFSET_OFFSET);
-        file.writeInt(newExportTablePos);
-
-        readImportTable();
+        updateImportTable(importTable -> {
+            ImportEntry entry = importTable.get(index);
+            entry.classPackage = nameReference(clazz[0]);
+            entry.className = nameReference(clazz[1]);
+        });
     }
 
     private void writeNameTable(List<NameEntry> nameTable) throws IOException {
@@ -733,14 +812,20 @@ public class UnrealPackageFile implements Closeable {
         }
 
         public void setObjectRawData(byte[] data) throws IOException {
+            setObjectRawData(data, true);
+        }
+
+        public void setObjectRawData(byte[] data, boolean writeExportTable) throws IOException {
             if (data.length <= getSize()) {
                 getUnrealPackage().file.setPosition(getOffset());
                 getUnrealPackage().file.write(data);
                 if (data.length != getSize()) {
                     size = data.length;
 
-                    getUnrealPackage().file.setPosition(getUnrealPackage().getExportTableOffset());
-                    getUnrealPackage().writeExportTable(getUnrealPackage().getExportTable());
+                    if (writeExportTable) {
+                        getUnrealPackage().file.setPosition(getUnrealPackage().getExportTableOffset());
+                        getUnrealPackage().writeExportTable(getUnrealPackage().getExportTable());
+                    }
                 }
             } else {
 //                //clear

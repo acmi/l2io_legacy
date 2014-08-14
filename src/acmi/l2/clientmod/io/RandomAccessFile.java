@@ -127,7 +127,7 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void setLength(int newLength) throws IOException {
-        file.setLength(newLength);
+        file.setLength(newLength + startOffset);
     }
 
     @Override

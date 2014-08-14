@@ -862,7 +862,8 @@ public class UnrealPackageFile implements Closeable {
         }
 
         public String getObjectInnerFullName() {
-            return super.getObjectFullName();
+            String str = getObjectFullName();
+            return str.substring(str.indexOf('.') + 1);
         }
     }
 

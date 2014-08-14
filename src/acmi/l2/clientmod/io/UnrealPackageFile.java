@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static acmi.l2.clientmod.io.UnrealPackageConstants.*;
@@ -242,12 +243,24 @@ public class UnrealPackageFile implements Closeable {
     }
 
     public void addNameEntries(Map<String, Integer> names) throws IOException {
-        List<NameEntry> nameTable = new ArrayList<>(getNameTable());
-        names.forEach((k, v) -> {
+        updateNameTable(nameTable -> names.forEach((k, v) -> {
             NameEntry entry = new NameEntry(null, 0, k, v);
             if (!nameTable.contains(entry))
                 nameTable.add(entry);
+        }));
+    }
+
+    public void updateNameEntry(int index, String newName, int newFlags) throws IOException {
+        updateNameTable(nameTable -> {
+            nameTable.remove(index);
+            nameTable.add(index, new NameEntry(this, index, newName, newFlags));
         });
+    }
+
+    public void updateNameTable(Consumer<List<NameEntry>> transformation) throws IOException {
+        List<NameEntry> nameTable = new ArrayList<>(getNameTable());
+
+        transformation.accept(nameTable);
 
         int newNameTablePos = getDataEndOffset();
         file.setPosition(newNameTablePos);

@@ -32,7 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @SuppressWarnings("unchecked")
-public class ClassHelper implements AutoCloseable {
+public class ClassHelper {
     private static final Logger log = Logger.getLogger(ClassHelper.class.getName());
 
     private final File systemFolder;
@@ -50,7 +50,9 @@ public class ClassHelper implements AutoCloseable {
 
     private UnrealPackageFile getClassPackage(String name) throws IOException {
         if (!classPackages.containsKey(name))
-            classPackages.put(name, new UnrealPackageFile(new File(systemFolder, name + ".u"), true));
+            try (UnrealPackageFile up = new UnrealPackageFile(new File(systemFolder, name + ".u"), true)) {
+                classPackages.put(name, up);
+            }
 
         return classPackages.get(name);
     }
@@ -66,7 +68,7 @@ public class ClassHelper implements AutoCloseable {
                 .filter(e -> e.getObjectFullName().equalsIgnoreCase(className))
                 .findAny()
                 .orElseThrow(() -> new IOException(className + " not found"));
-        ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawData()).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN);
         Struct struct;
         switch (entry.getObjectClass() != null ? entry.getObjectClass().getObjectFullName() : "null") {
             case "Core.Function":
@@ -80,17 +82,6 @@ public class ClassHelper implements AutoCloseable {
                 break;
         }
         return struct;
-    }
-
-    @Override
-    public void close() {
-        classPackages.values().stream().forEach(up -> {
-            try {
-                up.close();
-            } catch (IOException e) {
-                log.log(Level.WARNING, up + " close exception", e);
-            }
-        });
     }
 
     public Optional<List<Field>> getStruct(String structName) {
@@ -121,7 +112,7 @@ public class ClassHelper implements AutoCloseable {
         List<L2Property> properties = new ArrayList<>();
 
         UClass uClass = getUClass(className).orElse(null);
-        while (uClass != null){
+        while (uClass != null) {
             properties.addAll(uClass.getProperties());
 
             if (uClass.getEntry().getObjectSuperClass() == null)
@@ -133,9 +124,9 @@ public class ClassHelper implements AutoCloseable {
         return properties;
     }
 
-    Field loadField(UnrealPackageFile.ExportEntry entry) throws IOException {
+    public Field loadField(UnrealPackageFile.ExportEntry entry) throws IOException {
         try {
-            ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawData()).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN);
 
             String fieldClassName = getClass().getPackage().getName() + "." + entry.getObjectClass().getObjectName().getName();
             Class<? extends Field> fieldClass = (Class<? extends Field>) Class.forName(fieldClassName);

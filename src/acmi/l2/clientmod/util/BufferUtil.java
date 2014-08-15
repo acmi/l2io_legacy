@@ -38,7 +38,7 @@ public class BufferUtil {
         setDefaultCharset(Charset.forName("ISO_8859-1"));
     }
 
-    public static Charset getDefaultCharset(){
+    public static Charset getDefaultCharset() {
         return defaultCharset;
     }
 
@@ -120,18 +120,18 @@ public class BufferUtil {
         buffer.put(strBytes);
     }
 
-    public static String getUTF(ByteBuffer buffer){
+    public static String getUTF(ByteBuffer buffer) {
         int len = buffer.getInt();
         if (len == 0)
             return "";
         if (len < 0)
-            throw new IllegalStateException("Invalid string length: "+len);
+            throw new IllegalStateException("Invalid string length: " + len);
         byte[] bytes = new byte[len];
         buffer.get(bytes);
         return new String(bytes, UTF16LE);
     }
 
-    public static void putUTF(ByteBuffer buffer, String str){
+    public static void putUTF(ByteBuffer buffer, String str) {
         if (str == null || str.isEmpty()) {
             buffer.putInt(0);
             return;

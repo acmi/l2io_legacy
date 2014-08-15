@@ -59,13 +59,19 @@ public class Property extends Field {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public String toString() {
+    public Map<String, String> getInfo() {
         Map<String, String> props = new HashMap<>();
+
         if (arrayDimension != 1)
             props.put("arrayDimension", Integer.toString(arrayDimension));
         props.put("propertyFlags", getPropertyFlags().toString());
-        return getEntry() + ": " + getClass().getSimpleName() + props;
+
+        return props;
+    }
+
+    @Override
+    public String toString() {
+        return getEntry() + ": " + getClass().getSimpleName() + getInfo();
     }
 
     public enum CPF {

@@ -47,7 +47,7 @@ public class PropertiesUtil {
 
     @Deprecated
     public List<L2Property> readProperties(UnrealPackageFile.ExportEntry entry) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawData())
+        ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally())
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         if (getFlags(entry.getObjectFlags()).contains(HasStack)) {
@@ -309,7 +309,7 @@ public class PropertiesUtil {
             String a = arrayInner.getObjectClass().getObjectName().getName();
             Class<? extends Property> pc = (Class<? extends Property>) Class.forName("acmi.l2.clientmod.unreal." + a);
             Property f = pc.getConstructor(ByteBuffer.class, UnrealPackageFile.ExportEntry.class)
-                    .newInstance(ByteBuffer.wrap(arrayInner.getObjectRawData()).order(ByteOrder.LITTLE_ENDIAN), arrayInner);
+                    .newInstance(ByteBuffer.wrap(arrayInner.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN), arrayInner);
 
             for (Object arrayObj : arrayList) {
                 write(objBuffer, f, arrayObj, new AtomicBoolean(), new AtomicReference<>(), new AtomicReference<>(), up);

@@ -62,7 +62,7 @@ public class L2Property {
 
     @Override
     public String toString() {
-        return "["+template.getCategory()+"]"+template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
+        return "[" + template.getCategory() + "]" + template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
     }
 
     public List<String> values(ClassHelper classHelper) throws IOException {

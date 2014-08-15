@@ -24,7 +24,6 @@ package acmi.l2.clientmod.unreal;
 import acmi.l2.clientmod.io.UnrealPackageFile;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Map;
 
 import static acmi.l2.clientmod.util.BufferUtil.getCompactInt;
@@ -43,13 +42,10 @@ public class ByteProperty extends Property {
     }
 
     @Override
-    public String toString() {
-        Map<String, String> props = new HashMap<>();
-        if (arrayDimension != 1)
-            props.put("arrayDimension", Integer.toString(arrayDimension));
+    public Map<String, String> getInfo() {
+        Map<String, String> props = super.getInfo();
         if (getEnumType() != null)
             props.put("enumType", getEnumType().toString());
-        props.put("propertyFlags", getPropertyFlags().toString());
-        return getEntry() + ": " + getClass().getSimpleName() + props;
+        return props;
     }
 }

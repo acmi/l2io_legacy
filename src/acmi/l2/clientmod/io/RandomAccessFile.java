@@ -35,7 +35,7 @@ import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
 public class RandomAccessFile implements Closeable {
     private static Charset defalutCharset;
 
-    public static void setDefaultCharset(Charset charset){
+    public static void setDefaultCharset(Charset charset) {
         defalutCharset = Objects.requireNonNull(charset);
     }
 

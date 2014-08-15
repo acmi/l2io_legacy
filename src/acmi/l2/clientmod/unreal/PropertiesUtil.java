@@ -50,6 +50,11 @@ public class PropertiesUtil {
         ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally())
                 .order(ByteOrder.LITTLE_ENDIAN);
 
+        if (entry.getObjectClass() == null) {
+            UClass uClass = new UClass(buffer, entry, this);
+            uClass.readProperties();
+            return uClass.getProperties();
+        }
         if (getFlags(entry.getObjectFlags()).contains(HasStack)) {
             getCompactInt(buffer);
             getCompactInt(buffer);

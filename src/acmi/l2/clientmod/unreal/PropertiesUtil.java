@@ -33,36 +33,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static acmi.l2.clientmod.io.UnrealPackageConstants.ObjectFlag.HasStack;
-import static acmi.l2.clientmod.io.UnrealPackageConstants.ObjectFlag.getFlags;
 import static acmi.l2.clientmod.util.BufferUtil.*;
 
+/**
+ * Entry properties:
+ *
+ * if (entry.getObjectClass() == null) {
+ *   UClass uClass = new UClass(buffer, entry, this);
+ *   uClass.readProperties();
+ *   return uClass.getProperties();
+ * }
+ * if (getFlags(entry.getObjectFlags()).contains(HasStack)) {
+ *   getCompactInt(buffer);
+ *   getCompactInt(buffer);
+ *   buffer.position(buffer.position() + 12);
+ *   getCompactInt(buffer);
+ * }
+ */
 @SuppressWarnings("unchecked")
 public class PropertiesUtil {
     private ClassHelper classHelper;
 
     PropertiesUtil(ClassHelper classHelper) {
         this.classHelper = classHelper;
-    }
-
-    @Deprecated
-    public List<L2Property> readProperties(UnrealPackageFile.ExportEntry entry) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally())
-                .order(ByteOrder.LITTLE_ENDIAN);
-
-        if (entry.getObjectClass() == null) {
-            UClass uClass = new UClass(buffer, entry, this);
-            uClass.readProperties();
-            return uClass.getProperties();
-        }
-        if (getFlags(entry.getObjectFlags()).contains(HasStack)) {
-            getCompactInt(buffer);
-            getCompactInt(buffer);
-            buffer.position(buffer.position() + 12);
-            getCompactInt(buffer);
-        }
-
-        return readProperties(buffer, entry.getUnrealPackage(), entry.getObjectClass().getObjectFullName());
     }
 
     public List<L2Property> readProperties(ByteBuffer buffer, UnrealPackageFile up, String objClass) {
@@ -101,14 +94,10 @@ public class PropertiesUtil {
                         .filter(pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase((n)))
                         .findAny()
                         .orElse(null);
-                if (template == null) {
-                    System.err.println(objClass + ": Property template not found: " + name);
-//                    throw new IllegalStateException(objClass + ": Property template not found: " + name);
-                    property = new L2Property(name);
-                } else {
-                    property = new L2Property(template);
-                }
+                if (template == null)
+                    throw new IllegalStateException(objClass + ": Property template not found: " + name);
 
+                property = new L2Property(template);
                 properties.add(property);
             }
 

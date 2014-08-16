@@ -49,6 +49,10 @@ public class UnrealPackageFile implements Closeable {
     private List<ExportEntry> exports;
     private List<ImportEntry> imports;
 
+    private UUID uuid;
+
+    private List<Generation> generations;
+
     private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
 
     public UnrealPackageFile(File file, boolean readOnly) throws IOException {
@@ -72,6 +76,25 @@ public class UnrealPackageFile implements Closeable {
         readNameTable();
         readImportTable();
         readExportTable();
+
+        file.setPosition(UnrealPackageConstants.GUID_OFFSET);
+        byte[] uuidBytes = new byte[16];
+        file.readFully(uuidBytes);
+        uuid = UUID.fromString(String.format(
+                "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                uuidBytes[3], uuidBytes[2], uuidBytes[1], uuidBytes[0],
+                uuidBytes[5], uuidBytes[4],
+                uuidBytes[7], uuidBytes[6],
+                uuidBytes[8], uuidBytes[9],
+                uuidBytes[10], uuidBytes[11], uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15]
+        ));
+
+        file.setPosition(UnrealPackageConstants.GENERATIONS_OFFSET);
+        int count = file.readInt();
+        List<Generation> tmp = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            tmp.add(new Generation(this, i, file.readInt(), file.readInt()));
+        generations = Collections.unmodifiableList(tmp);
     }
 
     public String getPackageName() {
@@ -168,6 +191,24 @@ public class UnrealPackageFile implements Closeable {
                     file.readCompactInt()));
 
         imports = Collections.unmodifiableList(tmp);
+    }
+
+    public UUID getUUID(){
+        return uuid;
+    }
+
+    public void setUUID(UUID uuid) throws IOException{
+        file.setPosition(UnrealPackageConstants.GUID_OFFSET);
+        file.writeInt((int) (getUUID().getMostSignificantBits() >> 32));
+        file.writeShort((short) (getUUID().getMostSignificantBits() >> 16));
+        file.writeShort((short) getUUID().getMostSignificantBits());
+        file.writeLong(Long.reverseBytes(getUUID().getLeastSignificantBits()));
+
+        this.uuid = uuid;
+    }
+
+    public List<Generation> getGenerations() {
+        return generations;
     }
 
     public String getFilePath() {
@@ -725,7 +766,7 @@ public class UnrealPackageFile implements Closeable {
             if (pckg == null)
                 return getObjectName().getName();
             else
-                return pckg.toString() + '.' + getObjectName().getName();
+                return pckg.getObjectFullName() + '.' + getObjectName().getName();
         }
 
         public boolean equals(Object o) {
@@ -864,6 +905,11 @@ public class UnrealPackageFile implements Closeable {
         public String getObjectInnerFullName() {
             String str = getObjectFullName();
             return str.substring(str.indexOf('.') + 1);
+        }
+
+        @Override
+        public String toString() {
+            return getObjectInnerFullName();
         }
     }
 

@@ -68,7 +68,6 @@ public class PropertiesUtil {
                 .map(field -> (Property) field)
                 .collect(Collectors.toList());
 
-
         String name;
         while (!(name = up.getNameTable().get(getCompactInt(buffer)).getName()).equals("None")) {
             int info = buffer.get() & 0xff;
@@ -97,7 +96,7 @@ public class PropertiesUtil {
                 if (template == null)
                     throw new IllegalStateException(objClass + ": Property template not found: " + name);
 
-                property = new L2Property(template);
+                property = new L2Property(template, up);
                 properties.add(property);
             }
 
@@ -208,33 +207,33 @@ public class PropertiesUtil {
             case "Vector":
                 List<Field> vectorProperties = classHelper.getStruct("Core.Object.Vector")
                         .orElseThrow(() -> new IllegalStateException("Core.Object.Vector not found"));
-                L2Property x = new L2Property((Property) vectorProperties.get(0));
+                L2Property x = new L2Property((Property) vectorProperties.get(0), up);
                 x.setAt(0, objBuffer.getFloat());
-                L2Property y = new L2Property((Property) vectorProperties.get(1));
+                L2Property y = new L2Property((Property) vectorProperties.get(1), up);
                 y.setAt(0, objBuffer.getFloat());
-                L2Property z = new L2Property((Property) vectorProperties.get(2));
+                L2Property z = new L2Property((Property) vectorProperties.get(2), up);
                 z.setAt(0, objBuffer.getFloat());
                 return Arrays.asList(x, y, z);
             case "Rotator":
                 List<Field> rotatorProperties = classHelper.getStruct("Core.Object.Rotator")
                         .orElseThrow(() -> new IllegalStateException("Core.Object.Rotator not found"));
-                L2Property pitch = new L2Property((Property) rotatorProperties.get(0));
+                L2Property pitch = new L2Property((Property) rotatorProperties.get(0), up);
                 pitch.setAt(0, objBuffer.getInt());
-                L2Property yaw = new L2Property((Property) rotatorProperties.get(1));
+                L2Property yaw = new L2Property((Property) rotatorProperties.get(1), up);
                 yaw.setAt(0, objBuffer.getInt());
-                L2Property roll = new L2Property((Property) rotatorProperties.get(2));
+                L2Property roll = new L2Property((Property) rotatorProperties.get(2), up);
                 roll.setAt(0, objBuffer.getInt());
                 return Arrays.asList(pitch, yaw, roll);
             case "Color":
                 List<Field> colorProperties = classHelper.getStruct("Core.Object.Color")
                         .orElseThrow(() -> new IllegalStateException("Core.Object.Color not found"));
-                L2Property b = new L2Property((Property) colorProperties.get(0));
+                L2Property b = new L2Property((Property) colorProperties.get(0), up);
                 b.setAt(0, objBuffer.get() & 0xff);
-                L2Property g = new L2Property((Property) colorProperties.get(1));
+                L2Property g = new L2Property((Property) colorProperties.get(1), up);
                 g.setAt(0, objBuffer.get() & 0xff);
-                L2Property r = new L2Property((Property) colorProperties.get(2));
+                L2Property r = new L2Property((Property) colorProperties.get(2), up);
                 r.setAt(0, objBuffer.get() & 0xff);
-                L2Property a = new L2Property((Property) colorProperties.get(3));
+                L2Property a = new L2Property((Property) colorProperties.get(3), up);
                 a.setAt(0, objBuffer.get() & 0xff);
                 return Arrays.asList(b, g, r, a);
             default:

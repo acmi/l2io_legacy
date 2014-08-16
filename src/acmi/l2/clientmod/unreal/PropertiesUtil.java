@@ -93,7 +93,7 @@ public class PropertiesUtil {
 
             final String n = name;
             L2Property property = properties.stream()
-                    .filter(p -> p.getTemplate().getEntry().getObjectName().getName().equalsIgnoreCase((n)))
+                    .filter(p -> p.getName().equalsIgnoreCase((n)))
                     .findAny()
                     .orElse(null);
             if (property == null) {
@@ -101,10 +101,14 @@ public class PropertiesUtil {
                         .filter(pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase((n)))
                         .findAny()
                         .orElse(null);
-                if (template == null)
-                    throw new IllegalStateException(objClass + ": Property template not found: " + name);
+                if (template == null) {
+                    System.err.println(objClass + ": Property template not found: " + name);
+//                    throw new IllegalStateException(objClass + ": Property template not found: " + name);
+                    property = new L2Property(name);
+                } else {
+                    property = new L2Property(template);
+                }
 
-                property = new L2Property(template);
                 properties.add(property);
             }
 
@@ -153,6 +157,8 @@ public class PropertiesUtil {
 
     private Object read(ByteBuffer objBuffer, Type propertyType, boolean array, UnrealPackageFile.ExportEntry arrayInner, String structName, UnrealPackageFile up) {
         switch (propertyType) {
+            case NONE:
+                return null;
             case BYTE:
                 return objBuffer.get() & 0xff;
             case INT:
@@ -204,7 +210,7 @@ public class PropertiesUtil {
             case STR:
                 return getString(objBuffer);
             default:
-                throw new IllegalStateException("Unk type: " + propertyType);
+                throw new IllegalStateException("Unk type(" + structName + "): " + propertyType);
         }
     }
 

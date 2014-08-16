@@ -34,8 +34,6 @@ public class Function extends Struct {
     public Function(ByteBuffer buffer, UnrealPackageFile.ExportEntry up, PropertiesUtil propertiesUtil) {
         super(buffer, up, propertiesUtil);
 
-        //TODO code statements
-
         iNative = buffer.getShort() & 0xffff;
         operatorPrecedence = buffer.get() & 0xff;
         functionFlags = buffer.getInt();

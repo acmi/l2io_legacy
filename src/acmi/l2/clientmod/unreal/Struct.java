@@ -45,6 +45,9 @@ public class Struct extends Field {
         line = buffer.getInt();
         textPos = buffer.getInt();
         scriptSize = buffer.getInt();
+        if (scriptSize != 0){
+            //todo code statements
+        }
     }
 
     public UnrealPackageFile.Entry getScritpText() {

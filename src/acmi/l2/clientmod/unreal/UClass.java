@@ -64,7 +64,9 @@ public class UClass extends State {
     }
 
     public void readProperties() {
-        properties = propertiesUtil.readProperties(buffer, getEntry().getUnrealPackage(), getEntry().getObjectFullName());
-        buffer = null;
+        if (scriptSize == 0) {
+            properties = propertiesUtil.readProperties(buffer, getEntry().getUnrealPackage(), getEntry().getObjectFullName());
+            buffer = null;
+        }
     }
 }

@@ -33,15 +33,22 @@ import static acmi.l2.clientmod.unreal.ToT3D.toT3DString;
 
 public class L2Property {
     private Property template;
+    private String name;
     private Object[] value;
 
     public L2Property(Property template) {
         this.template = template;
+        this.name = template.getEntry().getObjectName().getName();
         this.value = new Object[template.arrayDimension];
     }
 
+    public L2Property(String name){
+        this.name = name;
+        this.value = new Object[1];
+    }
+
     public String getName() {
-        return template.getEntry().getObjectName().getName();
+        return name;
     }
 
     public Property getTemplate() {

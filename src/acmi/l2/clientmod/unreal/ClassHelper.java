@@ -40,6 +40,7 @@ public class ClassHelper {
     private final Map<String, UnrealPackageFile> classPackages = new HashMap<>();
     private final Map<String, List<Field>> structCache = new HashMap<>();
     private final Map<String, UClass> classCache = new HashMap<>();
+    private final Map<String, Field> fieldCache = new HashMap<>();
 
     private final PropertiesUtil propertiesUtil;
 
@@ -61,13 +62,17 @@ public class ClassHelper {
         return propertiesUtil;
     }
 
-    private Struct loadStruct(String className) throws IOException {
-        String[] path = className.split("\\.", 2);
+    private UnrealPackageFile.ExportEntry loadEntry(String name) throws IOException {
+        String[] path = name.split("\\.", 2);
         UnrealPackageFile up = getClassPackage(path[0]);
-        UnrealPackageFile.ExportEntry entry = up.getExportTable().stream()
-                .filter(e -> e.getObjectFullName().equalsIgnoreCase(className))
+        return up.getExportTable().stream()
+                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name))
                 .findAny()
-                .orElseThrow(() -> new IOException(className + " not found"));
+                .orElseThrow(() -> new IOException(name + " not found"));
+    }
+
+    private Struct loadStruct(String className) throws IOException {
+        UnrealPackageFile.ExportEntry entry = loadEntry(className);
         ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN);
         Struct struct;
         switch (entry.getObjectClass() != null ? entry.getObjectClass().getObjectFullName() : "null") {
@@ -139,6 +144,16 @@ public class ClassHelper {
         }
     }
 
+    public Field getField(UnrealPackageFile.ExportEntry entry) {
+        String name = entry.getObjectFullName();
+        if (!fieldCache.containsKey(name))
+            try {
+                fieldCache.put(name, loadField(entry));
+            } catch (IOException e) {
+            }
+        return fieldCache.get(name);
+    }
+
     private void load(String structName) throws IOException {
         List<Struct> list = new ArrayList<>();
 
@@ -158,7 +173,7 @@ public class ClassHelper {
 
             UnrealPackageFile.ExportEntry childEntry = (UnrealPackageFile.ExportEntry) struct.getChild();
             while (childEntry != null) {
-                Field field = loadField(childEntry);
+                Field field = getField(childEntry);
 
                 fields.add(field);
 

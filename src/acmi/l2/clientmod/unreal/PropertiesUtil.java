@@ -23,11 +23,11 @@ package acmi.l2.clientmod.unreal;
 
 import acmi.l2.clientmod.io.UnrealPackageFile;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,17 +37,17 @@ import static acmi.l2.clientmod.util.BufferUtil.*;
 
 /**
  * Entry properties:
- *
+ * <p>
  * if (entry.getObjectClass() == null) {
- *   UClass uClass = new UClass(buffer, entry, this);
- *   uClass.readProperties();
- *   return uClass.getProperties();
+ * UClass uClass = new UClass(buffer, entry, this);
+ * uClass.readProperties();
+ * return uClass.getProperties();
  * }
  * if (getFlags(entry.getObjectFlags()).contains(HasStack)) {
- *   getCompactInt(buffer);
- *   getCompactInt(buffer);
- *   buffer.position(buffer.position() + 12);
- *   getCompactInt(buffer);
+ * getCompactInt(buffer);
+ * getCompactInt(buffer);
+ * buffer.position(buffer.position() + 12);
+ * getCompactInt(buffer);
  * }
  */
 @SuppressWarnings("unchecked")
@@ -66,7 +66,8 @@ public class PropertiesUtil {
                 .stream()
                 .filter(field -> field instanceof Property)
                 .map(field -> (Property) field)
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
+        Collections.reverse(classTemplate);
 
         String name;
         while (!(name = up.getNameTable().get(getCompactInt(buffer)).getName()).equals("None")) {
@@ -86,7 +87,7 @@ public class PropertiesUtil {
             final String n = name;
             L2Property property = properties.stream()
                     .filter(p -> p.getName().equalsIgnoreCase((n)))
-                    .findAny()
+                    .findFirst()
                     .orElse(null);
             if (property == null) {
                 Property template = classTemplate.stream()
@@ -164,12 +165,9 @@ public class PropertiesUtil {
                 List<Object> arrayList = new ArrayList<>(arraySize);
 
                 String a = arrayInner.getObjectClass().getObjectName().getName();
-                Property f;
-                try {
-                    f = (Property) classHelper.loadField(arrayInner);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                Property f = (Property) classHelper.getField(arrayInner);
+                if (f == null)
+                    throw new IllegalStateException("Field " + a + " not loaded");
 
                 array = false;
                 arrayInner = null;

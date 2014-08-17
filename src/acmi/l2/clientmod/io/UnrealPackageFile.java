@@ -92,7 +92,7 @@ public class UnrealPackageFile implements Closeable {
         file.setPosition(UnrealPackageConstants.GENERATIONS_OFFSET);
         int count = file.readInt();
         List<Generation> tmp = new ArrayList<>(count);
-        for (int i=0; i<count; i++)
+        for (int i = 0; i < count; i++)
             tmp.add(new Generation(this, i, file.readInt(), file.readInt()));
         generations = Collections.unmodifiableList(tmp);
     }
@@ -193,11 +193,11 @@ public class UnrealPackageFile implements Closeable {
         imports = Collections.unmodifiableList(tmp);
     }
 
-    public UUID getUUID(){
+    public UUID getUUID() {
         return uuid;
     }
 
-    public void setUUID(UUID uuid) throws IOException{
+    public void setUUID(UUID uuid) throws IOException {
         file.setPosition(UnrealPackageConstants.GUID_OFFSET);
         file.writeInt((int) (getUUID().getMostSignificantBits() >> 32));
         file.writeShort((short) (getUUID().getMostSignificantBits() >> 16));

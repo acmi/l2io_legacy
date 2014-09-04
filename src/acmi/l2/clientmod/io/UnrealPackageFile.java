@@ -274,7 +274,7 @@ public class UnrealPackageFile implements Closeable {
     public int exportReference(String name) {
         try {
             return getExportTable().stream()
-                    .filter(entry -> entry.getObjectFullName().equalsIgnoreCase(name))
+                    .filter(entry -> entry.getObjectInnerFullName().equalsIgnoreCase(name))
                     .findAny()
                     .get()
                     .getObjectReference();

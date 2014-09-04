@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -55,8 +56,8 @@ public class UnrealPackageFile implements Closeable {
 
     private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
 
-    public UnrealPackageFile(File file, boolean readOnly) throws IOException {
-        this(new RandomAccessFile(file, readOnly));
+    public UnrealPackageFile(File file, boolean readOnly, Charset charset) throws IOException {
+        this(new RandomAccessFile(file, readOnly, charset));
     }
 
     public UnrealPackageFile(RandomAccessFile file) throws IOException {
@@ -844,7 +845,7 @@ public class UnrealPackageFile implements Closeable {
             if (getSize() == 0)
                 return new byte[0];
 
-            try (RandomAccessFile raf = new RandomAccessFile(getUnrealPackage().file.getPath(), true)) {
+            try (RandomAccessFile raf = new RandomAccessFile(getUnrealPackage().file.getPath(), true, getUnrealPackage().file.getCharset())) {
                 byte[] data = new byte[getSize()];
                 raf.setPosition(getOffset());
                 raf.readFully(data);

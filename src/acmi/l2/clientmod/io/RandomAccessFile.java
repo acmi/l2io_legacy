@@ -26,27 +26,11 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
-import java.util.Objects;
 
 import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
 
 public class RandomAccessFile implements Closeable {
-    private static Charset defalutCharset;
-
-    public static void setDefaultCharset(Charset charset) {
-        defalutCharset = Objects.requireNonNull(charset);
-    }
-
-    public static Charset getDefalutCharset() {
-        return defalutCharset;
-    }
-
-    static {
-        setDefaultCharset(Charset.forName("ISO_8859-1"));
-    }
-
     protected final java.io.RandomAccessFile file;
     private final String path;
 
@@ -54,13 +38,9 @@ public class RandomAccessFile implements Closeable {
     protected final int xorKey;
     protected final int startOffset;
 
-    private CharsetEncoder charsetEncoder;
+    private Charset charset;
 
-    public RandomAccessFile(String path, boolean readOnly) throws IOException {
-        this(new File(path), readOnly);
-    }
-
-    public RandomAccessFile(File f, boolean readOnly) throws IOException {
+    public RandomAccessFile(File f, boolean readOnly, Charset charset) throws IOException {
         file = new java.io.RandomAccessFile(f, readOnly ? "r" : "rw");
         path = f.getPath();
 
@@ -85,7 +65,11 @@ public class RandomAccessFile implements Closeable {
             xorKey = 0;
         }
 
-        setCharset(getDefalutCharset());
+        setCharset(charset);
+    }
+
+    public RandomAccessFile(String path, boolean readOnly, Charset charset) throws IOException {
+        this(new File(path), readOnly, charset);
     }
 
     private String getCryptHeader() throws IOException {
@@ -111,11 +95,11 @@ public class RandomAccessFile implements Closeable {
     }
 
     public Charset getCharset() {
-        return charsetEncoder.charset();
+        return charset;
     }
 
     public void setCharset(Charset charset) {
-        this.charsetEncoder = charset.newEncoder();
+        this.charset = charset;
     }
 
     public void setPosition(int pos) throws IOException {
@@ -248,7 +232,7 @@ public class RandomAccessFile implements Closeable {
 
         byte[] bytes = new byte[len > 0 ? len : -2 * len];
         readFully(bytes);
-        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), len > 0 ? charsetEncoder.charset() : Charset.forName("utf-16le")).intern();
+        return new String(bytes, 0, bytes.length - (len > 0 ? 1 : 2), len > 0 ? charset : Charset.forName("utf-16le")).intern();
     }
 
     public String readUTF() throws IOException {
@@ -324,7 +308,7 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void writeBytes(String s) throws IOException {
-        byte[] strBytes = (s + '\0').getBytes(charsetEncoder.charset());
+        byte[] strBytes = (s + '\0').getBytes(charset);
         writeCompactInt(strBytes.length);
         write(strBytes);
     }
@@ -336,7 +320,7 @@ public class RandomAccessFile implements Closeable {
     }
 
     public void writeLine(String s) throws IOException {
-        if (charsetEncoder.canEncode(s))
+        if (charset.newEncoder().canEncode(s))
             writeBytes(s);
         else
             writeChars(s);

@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,14 +45,17 @@ public class ClassHelper {
 
     private final PropertiesUtil propertiesUtil;
 
+    private final Charset charset;
+
     public ClassHelper(String l2SystemFolder) {
         this.systemFolder = new File(l2SystemFolder);
         this.propertiesUtil = new PropertiesUtil(this);
+        this.charset = Charset.forName(System.getProperty("acmi.l2.clientmod.unreal.ClassHelper.charset", "EUC-KR"));
     }
 
     private UnrealPackageFile getClassPackage(String name) throws IOException {
         if (!classPackages.containsKey(name))
-            try (UnrealPackageFile up = new UnrealPackageFile(new File(systemFolder, name + ".u"), true)) {
+            try (UnrealPackageFile up = new UnrealPackageFile(new File(systemFolder, name + ".u"), true, charset)) {
                 classPackages.put(name, up);
             }
 

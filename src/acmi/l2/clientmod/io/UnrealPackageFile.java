@@ -21,23 +21,30 @@
  */
 package acmi.l2.clientmod.io;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.io.*;
+import java.lang.ref.Reference;
+import java.lang.ref.SoftReference;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static acmi.l2.clientmod.io.UnrealPackageConstants.*;
-import static acmi.l2.clientmod.util.BufferUtil.putCompactInt;
-import static acmi.l2.clientmod.util.BufferUtil.putString;
-import static acmi.l2.clientmod.util.ByteUtil.compactIntToByteArray;
+import static acmi.l2.clientmod.io.ByteUtil.*;
 
-public class UnrealPackageFile implements Closeable {
-    public static int BUFFER_SIZE = 1 << 22;
+public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
+    public static final int UNREAL_PACKAGE_MAGIC = 0x9E2A83C1;
+
+    public static final int VERSION_OFFSET = 4;
+    public static final int LICENSEE_OFFSET = 6;
+    public static final int PACKAGE_FLAGS_OFFSET = 8;
+    public static final int NAME_COUNT_OFFSET = 12;
+    public static final int NAME_OFFSET_OFFSET = 16;
+    public static final int EXPORT_COUNT_OFFSET = 20;
+    public static final int EXPORT_OFFSET_OFFSET = 24;
+    public static final int IMPORT_COUNT_OFFSET = 28;
+    public static final int IMPORT_OFFSET_OFFSET = 32;
+    public static final int GUID_OFFSET = 36;
+    public static final int GENERATIONS_OFFSET = 52;
 
     private RandomAccessFile file;
     private final String packageName;
@@ -54,10 +61,20 @@ public class UnrealPackageFile implements Closeable {
 
     private List<Generation> generations;
 
-    private ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
+    public UnrealPackageFile(String path, boolean readOnly, Charset charset) throws IOException {
+        this(new RandomAccessFile(path, readOnly, charset));
+    }
+
+    public UnrealPackageFile(String path, boolean readOnly) throws IOException {
+        this(new RandomAccessFile(path, readOnly));
+    }
 
     public UnrealPackageFile(File file, boolean readOnly, Charset charset) throws IOException {
         this(new RandomAccessFile(file, readOnly, charset));
+    }
+
+    public UnrealPackageFile(File file, boolean readOnly) throws IOException {
+        this(new RandomAccessFile(file, readOnly));
     }
 
     public UnrealPackageFile(RandomAccessFile file) throws IOException {
@@ -78,24 +95,26 @@ public class UnrealPackageFile implements Closeable {
         readImportTable();
         readExportTable();
 
-        file.setPosition(UnrealPackageConstants.GUID_OFFSET);
+        file.setPosition(GUID_OFFSET);
         byte[] uuidBytes = new byte[16];
         file.readFully(uuidBytes);
-        uuid = UUID.fromString(String.format(
-                "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                uuidBytes[3], uuidBytes[2], uuidBytes[1], uuidBytes[0],
-                uuidBytes[5], uuidBytes[4],
-                uuidBytes[7], uuidBytes[6],
-                uuidBytes[8], uuidBytes[9],
-                uuidBytes[10], uuidBytes[11], uuidBytes[12], uuidBytes[13], uuidBytes[14], uuidBytes[15]
-        ));
+        uuid = uuidFromBytes(uuidBytes);
 
-        file.setPosition(UnrealPackageConstants.GENERATIONS_OFFSET);
+        file.setPosition(GENERATIONS_OFFSET);
         int count = file.readInt();
         List<Generation> tmp = new ArrayList<>(count);
         for (int i = 0; i < count; i++)
             tmp.add(new Generation(this, i, file.readInt(), file.readInt()));
         generations = Collections.unmodifiableList(tmp);
+    }
+
+    public RandomAccessFile getFile() {
+        return file;
+    }
+
+    @Override
+    public Charset getCharset() {
+        return getFile().getCharset();
     }
 
     public String getPackageName() {
@@ -199,11 +218,8 @@ public class UnrealPackageFile implements Closeable {
     }
 
     public void setUUID(UUID uuid) throws IOException {
-        file.setPosition(UnrealPackageConstants.GUID_OFFSET);
-        file.writeInt((int) (getUUID().getMostSignificantBits() >> 32));
-        file.writeShort((short) (getUUID().getMostSignificantBits() >> 16));
-        file.writeShort((short) getUUID().getMostSignificantBits());
-        file.writeLong(Long.reverseBytes(getUUID().getLeastSignificantBits()));
+        file.setPosition(GUID_OFFSET);
+        file.write(uuidToBytes(uuid));
 
         this.uuid = uuid;
     }
@@ -217,20 +233,24 @@ public class UnrealPackageFile implements Closeable {
     }
 
     public String toString() {
-        return "UnrealPackage[" + getFilePath() + "]";
+        return getPackageName();
     }
 
     public String nameReference(int index) {
         return getNameTable().get(index).getName();
     }
 
-    public Entry objectReference(int index) {
-        if (index > 0)
-            return getExportTable().get(index - 1);
-        else if (index < 0)
-            return getImportTable().get(-index - 1);
+    public Entry objectReference(int ref) {
+        if (ref > 0)
+            return getExportTable().get(ref - 1);
+        else if (ref < 0)
+            return getImportTable().get(-ref - 1);
         else
             return null;
+    }
+
+    public Entry getAt(int index) {
+        return objectReference(index);
     }
 
     public int nameReference(String name) {
@@ -586,41 +606,53 @@ public class UnrealPackageFile implements Closeable {
         });
     }
 
+    private OutputStream fileOutputStream = new OutputStream() {
+        @Override
+        public void write(int b) throws IOException {
+            file.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            file.write(b, off, len);
+        }
+    };
+
     private void writeNameTable(List<NameEntry> nameTable) throws IOException {
-        buffer.clear();
-        nameTable.stream().forEach(entry -> {
-            putString(buffer, entry.getName(), file.getCharset());
-            buffer.putInt(entry.getFlags());
-        });
-        buffer.flip();
-        file.write(buffer.array(), 0, buffer.limit());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutput buffer = new DataOutputStream(baos, file.getCharset());
+        for (NameEntry entry : nameTable) {
+            buffer.writeLine(entry.getName());
+            buffer.writeInt(entry.getFlags());
+        }
+        baos.writeTo(fileOutputStream);
     }
 
     private void writeImportTable(List<ImportEntry> importTable) throws IOException {
-        buffer.clear();
-        importTable.stream().forEach(entry -> {
-            putCompactInt(buffer, entry.classPackage);
-            putCompactInt(buffer, entry.className);
-            buffer.putInt(entry.objectPackage);
-            putCompactInt(buffer, entry.objectName);
-        });
-        buffer.flip();
-        file.write(buffer.array(), 0, buffer.limit());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutput buffer = new DataOutputStream(baos, file.getCharset());
+        for (ImportEntry entry : importTable) {
+            buffer.writeCompactInt(entry.classPackage);
+            buffer.writeCompactInt(entry.className);
+            buffer.writeInt(entry.objectPackage);
+            buffer.writeCompactInt(entry.objectName);
+        }
+        baos.writeTo(fileOutputStream);
     }
 
     private void writeExportTable(List<ExportEntry> exportTable) throws IOException {
-        buffer.clear();
-        exportTable.stream().forEach(entry -> {
-            putCompactInt(buffer, entry.objectClass);
-            putCompactInt(buffer, entry.objectSuperClass);
-            buffer.putInt(entry.objectPackage);
-            putCompactInt(buffer, entry.objectName);
-            buffer.putInt(entry.objectFlags);
-            putCompactInt(buffer, entry.size);
-            putCompactInt(buffer, entry.offset);
-        });
-        buffer.flip();
-        file.write(buffer.array(), 0, buffer.limit());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutput buffer = new DataOutputStream(baos, file.getCharset());
+        for (ExportEntry entry : exportTable) {
+            buffer.writeCompactInt(entry.objectClass);
+            buffer.writeCompactInt(entry.objectSuperClass);
+            buffer.writeInt(entry.objectPackage);
+            buffer.writeCompactInt(entry.objectName);
+            buffer.writeInt(entry.objectFlags);
+            buffer.writeCompactInt(entry.size);
+            buffer.writeCompactInt(entry.offset);
+        }
+        baos.writeTo(fileOutputStream);
     }
 
     public int getNameTableOffset() throws IOException {
@@ -703,7 +735,7 @@ public class UnrealPackageFile implements Closeable {
         }
     }
 
-    public static final class NameEntry extends PackageEntry {
+    public static final class NameEntry extends PackageEntry implements UnrealPackageReadOnly.NameEntry {
         private final String name;
         private int flags;
 
@@ -740,19 +772,27 @@ public class UnrealPackageFile implements Closeable {
         public int hashCode() {
             return name.hashCode();
         }
+
+        public NameEntry previous() {
+            return getUnrealPackage().getNameTable().get(getIndex() - 1);
+        }
+
+        public NameEntry next() {
+            return getUnrealPackage().getNameTable().get(getIndex() + 1);
+        }
     }
 
-    public static abstract class Entry extends PackageEntry {
+    public static abstract class Entry extends PackageEntry implements UnrealPackageReadOnly.Entry {
         protected final int objectPackage;
         protected final int objectName;
+
+        private Reference<String> innerName = new SoftReference<>(null);
 
         protected Entry(UnrealPackageFile unrealPackage, int index, int objectPackage, int objectName) {
             super(unrealPackage, index);
             this.objectPackage = objectPackage;
             this.objectName = objectName;
         }
-
-        public abstract int getObjectReference();
 
         public Entry getObjectPackage() {
             return getUnrealPackage().objectReference(objectPackage);
@@ -762,12 +802,14 @@ public class UnrealPackageFile implements Closeable {
             return getUnrealPackage().getNameTable().get(objectName);
         }
 
-        public String getObjectFullName() {
-            Entry pckg = getObjectPackage();
-            if (pckg == null)
-                return getObjectName().getName();
-            else
-                return pckg.getObjectFullName() + '.' + getObjectName().getName();
+        public String getObjectInnerFullName() {
+            String str = innerName.get();
+            if (str == null) {
+                Entry pckg = getObjectPackage();
+                str = pckg == null ? getObjectName().getName() : pckg.getObjectInnerFullName() + '.' + getObjectName().getName();
+                innerName = new SoftReference<>(str);
+            }
+            return str;
         }
 
         public boolean equals(Object o) {
@@ -791,12 +833,14 @@ public class UnrealPackageFile implements Closeable {
         }
     }
 
-    public static final class ExportEntry extends Entry {
+    public static final class ExportEntry extends Entry implements UnrealPackageReadOnly.ExportEntry {
         private int objectClass;
         private int objectSuperClass;
         private int objectFlags;
         private int size;
         private int offset;
+
+        private Reference<String> fullName = new SoftReference<>(null);
 
         private ExportEntry(UnrealPackageFile unrealPackage, int index, int objectClass, int objectSuperClass, int objectPackage, int objectName, int objectFlags, int size, int offset) {
             super(unrealPackage, index, objectPackage, objectName);
@@ -897,26 +941,33 @@ public class UnrealPackageFile implements Closeable {
 
         @Override
         public String getObjectFullName() {
-            String str = super.getObjectFullName();
-            if (getObjectPackage() == null)
-                str = getUnrealPackage().getPackageName() + "." + str;
+            String str = fullName.get();
+            if (str == null) {
+                str = getUnrealPackage().getPackageName() + "." + getObjectInnerFullName();
+                fullName = new SoftReference<>(str);
+            }
             return str;
-        }
-
-        public String getObjectInnerFullName() {
-            String str = getObjectFullName();
-            return str.substring(str.indexOf('.') + 1);
         }
 
         @Override
         public String toString() {
             return getObjectInnerFullName();
         }
+
+        public ExportEntry previous() {
+            return getUnrealPackage().getExportTable().get(getIndex() - 1);
+        }
+
+        public ExportEntry next() {
+            return getUnrealPackage().getExportTable().get(getIndex() + 1);
+        }
     }
 
-    public static final class ImportEntry extends Entry {
+    public static final class ImportEntry extends Entry implements UnrealPackageReadOnly.ImportEntry {
         private int classPackage;
         private int className;
+
+        private Reference<String> fullClassName = new SoftReference<>(null);
 
         private ImportEntry(UnrealPackageFile unrealPackage, int index, int classPackage, int className, int objectPackage, int objectName) {
             super(unrealPackage, index, objectPackage, objectName);
@@ -937,11 +988,21 @@ public class UnrealPackageFile implements Closeable {
         }
 
         public String getFullClassName() {
-            NameEntry pckg = getClassPackage();
-            if (pckg == null)
-                return getClassName().getName();
+            String str = fullClassName.get();
+            if (str == null) {
+                NameEntry pckg = getClassPackage();
+                str = pckg == null ? getClassName().getName() : pckg.getName() + '.' + getClassName().getName();
+                fullClassName = new SoftReference<>(str);
+            }
+            return str;
+        }
 
-            return pckg.getName() + '.' + getClassName().getName();
+        public ImportEntry previous() {
+            return getUnrealPackage().getImportTable().get(getIndex() - 1);
+        }
+
+        public ImportEntry next() {
+            return getUnrealPackage().getImportTable().get(getIndex() + 1);
         }
     }
 }

@@ -25,6 +25,7 @@ import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataInputStream;
 import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.Class;
 import acmi.l2.clientmod.unreal.core.*;
 import acmi.l2.clientmod.unreal.properties.L2Property;
@@ -125,11 +126,11 @@ public class OldClassLoaderImpl implements UnrealClassLoader {
     }
 
     @Override
-    public Struct getStruct(String structName) throws ClassLoadException {
+    public Struct getStruct(String structName) throws UnrealException {
         try {
             return loadStruct(structName);
         } catch (IOException e) {
-            throw new ClassLoadException(e);
+            throw new UnrealException(e);
         }
     }
 

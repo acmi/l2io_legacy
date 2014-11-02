@@ -27,7 +27,7 @@ import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class Function extends Struct {
@@ -46,25 +46,25 @@ public class Function extends Struct {
     }
 
     public enum Flag {
-        FINAL(1),
+        FINAL(0),
         DEFINED(2),
-        LATENT(8),
-        PRE_OPERATOR(0x10),
-        NET(0x40),
-        NETRELIABLE(0x80),
-        SIMULATED(0x100),
-        EXEC(0x200),
-        NATIVE(0x400),
-        EVENT(0x800),
-        OPERATOR(0x1000),
-        STATIC(0x2000),
-        PROTECTED(0x80000),
-        DELEGATE(0x100000);
+        LATENT(3),
+        PRE_OPERATOR(4),
+        NET(6),
+        NETRELIABLE(7),
+        SIMULATED(8),
+        EXEC(9),
+        NATIVE(10),
+        EVENT(11),
+        OPERATOR(12),
+        STATIC(13),
+        PROTECTED(19),
+        DELEGATE(20);
 
         private int mask;
 
-        Flag(int mask) {
-            this.mask = mask;
+        Flag(int bit) {
+            this.mask = 1 << bit;
         }
 
         public int getMask() {
@@ -76,7 +76,7 @@ public class Function extends Struct {
             return "FF_" + name();
         }
 
-        public static List<Flag> getFlags(int flags) {
+        public static Collection<Flag> getFlags(int flags) {
             return Arrays.stream(values())
                     .filter(e -> (e.getMask() & flags) != 0)
                     .collect(Collectors.toList());

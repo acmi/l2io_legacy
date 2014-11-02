@@ -24,6 +24,7 @@ package acmi.l2.clientmod.io;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -107,128 +108,130 @@ public interface UnrealPackageReadOnly {
         /**
          * Object is transactional.
          */
-        Transactional(0x00000001),
+        Transactional,
         /**
          * Object is not reachable on the object graph.
          */
-        Unreachable(0x00000002),
+        Unreachable,
         /**
          * Object is visible outside its package.
          */
-        Public(0x00000004),
+        Public,
         /**
          * Temporary import tag in load/save.
          */
-        TagImp(0x00000008),
+        TagImp,
         /**
          * Temporary export tag in load/save.
          */
-        TagExp(0x00000010),
+        TagExp,
         /**
          * Modified relative to source files.
          */
-        SourceModified(0x00000020),
+        SourceModified,
         /**
          * Check during garbage collection.
          */
-        TagGarbage(0x00000040),
+        TagGarbage,
+        Flag7,
+        Flag8,
         /**
          * During load, indicates object needs loading.
          */
-        NeedLoad(0x00000200),
+        NeedLoad,
         /**
          * A hardcoded name which should be syntaxhighlighted.
          */
-        HighlightedName(0x00000400),
+        HighlightedName,
         /**
          * In a singular function.
          */
-        InSingularFunc(0x00000800),
+        InSingularFunc,
         /**
          * Suppressed log name.
          */
-        Suppress(0x00001000),
+        Suppress,
         /**
          * Within an EndState call.
          */
-        InEndState(0x00002000),
+        InEndState,
         /**
          * Don't save object.
          */
-        Transient(0x00004000),
+        Transient,
         /**
          * Data is being preloaded from file.
          */
-        PreLoading(0x00008000),
+        PreLoading,
         /**
          * In-file load for client.
          */
-        LoadForClient(0x00010000),
+        LoadForClient,
         /**
          * In-file load for client.
          */
-        LoadForServer(0x00020000),
+        LoadForServer,
         /**
          * In-file load for client.
          */
-        LoadForEdit(0x00040000),
+        LoadForEdit,
         /**
          * Keep object around for editing even if unreferenced.
          */
-        Standalone(0x00080000),
+        Standalone,
         /**
          * Don't load this object for the game client.
          */
-        NotForClient(0x00100000),
+        NotForClient,
         /**
          * Don't load this object for the game server.
          */
-        NotForServer(0x00200000),
+        NotForServer,
         /**
          * Don't load this object for the editor.
          */
-        NotForEdit(0x00400000),
+        NotForEdit,
         /**
          * Object Destroy has already been called.
          */
-        Destroyed(0x00800000),
+        Destroyed,
         /**
          * Object needs to be postloaded.
          */
-        NeedPostLoad(0x01000000),
+        NeedPostLoad,
         /**
          * Has execution stack.
          */
-        HasStack(0x02000000),
+        HasStack,
         /**
          * Native (UClass only).
          */
-        Native(0x04000000),
+        Native,
         /**
          * Marked (for debugging).
          */
-        Marked(0x08000000),
+        Marked,
         /**
          * ShutdownAfterError called.
          */
-        ErrorShutdown(0x10000000),
+        ErrorShutdown,
         /**
          * For debugging Serialize calls.
          */
-        DebugPostLoad(0x20000000),
+        DebugPostLoad,
         /**
          * For debugging Serialize calls.
          */
-        DebugSerialize(0x40000000),
+        DebugSerialize,
         /**
          * For debugging Destroy calls.
          */
-        DebugDestroy(0x80000000);
+        DebugDestroy;
 
         private int mask;
 
-        ObjectFlag(int mask) {
-            this.mask = mask;
+        ObjectFlag() {
+            this.mask = 1 << ordinal();
         }
 
         public int getMask() {
@@ -240,7 +243,7 @@ public interface UnrealPackageReadOnly {
             return "RF_" + name();
         }
 
-        public static List<ObjectFlag> getFlags(int flags) {
+        public static Collection<ObjectFlag> getFlags(int flags) {
             return Arrays.stream(values())
                     .filter(e -> (e.getMask() & flags) != 0)
                     .collect(Collectors.toList());
@@ -264,32 +267,32 @@ public interface UnrealPackageReadOnly {
         /**
          * Allow downloading package
          */
-        AllowDownload(0x0001),
+        AllowDownload(0),
         /**
          * Purely optional for clients
          */
-        ClientOptional(0x0002),
+        ClientOptional(1),
         /**
          * Only needed on the server side
          */
-        ServerSideOnly(0x0004),
+        ServerSideOnly(2),
         /**
          * Loaded from linker with broken import links
          */
-        BrokenLinks(0x0008),
+        BrokenLinks(3),
         /**
          * Not trusted
          */
-        Unsecure(0x0010),
+        Unsecure(4),
         /**
          * Client needs to download this package
          */
-        Need(0x8000);
+        Need(15);
 
         private int mask;
 
-        PackageFlag(int mask) {
-            this.mask = mask;
+        PackageFlag(int bit) {
+            this.mask = 1 << bit;
         }
 
         public int getMask() {
@@ -301,7 +304,7 @@ public interface UnrealPackageReadOnly {
             return "PKG_" + name();
         }
 
-        public static List<PackageFlag> getFlags(int flags) {
+        public static Collection<PackageFlag> getFlags(int flags) {
             return Arrays.stream(values())
                     .filter(e -> (e.getMask() & flags) != 0)
                     .collect(Collectors.toList());

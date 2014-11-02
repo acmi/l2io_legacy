@@ -22,13 +22,15 @@
 package acmi.l2.clientmod.util;
 
 import java.util.List;
+import java.util.ListIterator;
 import java.util.function.Predicate;
 
 public class CollectionsMethods {
     public static <T> int indexIf(List<T> list, Predicate<T> predicate) {
-        for (int i = 0; i < list.size(); i++)
-            if (predicate.test(list.get(i)))
-                return i;
+        ListIterator<T> it = list.listIterator();
+        while (it.hasNext())
+            if (predicate.test(it.next()))
+                return it.previousIndex();
         return -1;
     }
 }

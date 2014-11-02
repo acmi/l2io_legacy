@@ -46,7 +46,7 @@ public interface UnrealClassLoader {
 
     default Optional<List<Field>> getStructFieldsQuetly(String structName) {
         try {
-            return Optional.of(getStructFields(structName));
+            return Optional.ofNullable(getStructFields(structName)); //todo can be null?
         } catch (ClassLoadException e) {
             return Optional.ofNullable(null);
         }

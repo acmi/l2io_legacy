@@ -1,375 +1,252 @@
-/*
- * Copyright (c) 2014 acmi
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
 package acmi.l2.clientmod.unreal.bytecode;
 
 import acmi.l2.clientmod.io.DataInput;
-import acmi.l2.clientmod.io.UnrealPackageFile;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.Function;
-
-import static acmi.l2.clientmod.unreal.bytecode.BytecodeToken.*;
 
 public class BytecodeReader implements Iterator<BytecodeToken> {
     private DataInput input;
-    private int scriptSize;
-    private int read;
-    private UnrealPackageFile unrealPackage;
-    private UnrealClassLoader classLoader;
+    private UnrealPackageReadOnly unrealPackage;
+    private Function<Integer, NativeFunction> naviveFunctionSupplier;
 
-    public BytecodeReader(DataInput input, int scriptSize, UnrealPackageFile unrealPackage, UnrealClassLoader classLoader) {
+    private int scriptSize;
+    private int readSize;
+
+    private boolean next_is_not_delegate;
+
+    public BytecodeReader(DataInput input, int scriptSize, UnrealPackageReadOnly unrealPackage, Function<Integer, NativeFunction> naviveFunctionSupplier) {
         this.input = input;
         this.scriptSize = scriptSize;
         this.unrealPackage = unrealPackage;
-        this.classLoader = classLoader;
+        this.naviveFunctionSupplier = naviveFunctionSupplier;
     }
 
     @Override
     public boolean hasNext() {
-        return read < scriptSize;
+        return readSize < scriptSize;
     }
 
+    @Override
     public BytecodeToken next() {
         try {
             int b = readUnsignedByte();
             switch (b) {
-                case EX_RotatorToVector:
-                    return next();
-                case EX_IntToString:
-                    return new BytecodeToken("string(" + next() + ")");
                 case EX_LocalVariable:
                 case EX_InstanceVariable:
                 case EX_NativeParm:
                     return readRef(e -> e.getObjectName().getName());
-//            case EX_DefaultVariable:
-//                return readRef(e -> "Default." + e.getObjectName().getName());
+                case EX_DefaultVariable:
+                    return readRef(e -> "Default." + e.getObjectName().getName());
+                case EX_UnknownVariable:
+                    return readRef(e -> next() + "." + e.getObjectName().getName());
                 case EX_Return:
-                    return new ReturnToken(next());
-//            case EX_Assert:
-//                _reader.ReadInt16();
-//                _reader.ReadByte();
-//                return WrapNextBytecode(c => new BytecodeToken("assert(" + c + ")"));
-//
-//            case EX_Switch:
-//                byte b1 = _reader.ReadByte();
-//                BytecodeToken switchExpr = ReadNext();
-//                return new SwitchToken(switchExpr.ToString(), switchExpr);
-//
-//
-//            case EX_Case:
-//            {
-//                short offset = _reader.ReadInt16();
-//                if (offset == -1) return new DefaultToken();
-//                BytecodeToken caseExpr = ReadNext();
-//                return new CaseToken(caseExpr.ToString());
-//            }
-//
-                case EX_Jump: {
-                    return new UncondJumpToken(readUnsignedShort());
-                }
-                case EX_JumpIfNot: {
-                    return new JumpIfNotToken(readUnsignedShort(), next());
-                }
-
-//            case EX_LabelTable:
-//            {
-//                var token = new LabelTableToken();
-//                while (true)
-//                {
-//                    string labelName = ReadName();
-//                    if (labelName == "None") break;
-//                    int offset = _reader.ReadInt32();
-//                    token.AddLabel(labelName, offset);
-//                }
-//                return token;
-//            }
-//
-//            case EX_GotoLabel:
-//                return WrapNextBytecode(op => Token("goto " + op));
-//
+                    return new BytecodeToken.ReturnToken(next());
+                case EX_Switch:
+                    return next(); //todo
+                case EX_Jump:
+                    return new BytecodeToken.UncondJumpToken(readUnsignedShort());
+                case EX_JumpIfNot:
+                    return new BytecodeToken.JumpIfNotToken(readUnsignedShort(), next());
+                case EX_Stop:
+                    return new BytecodeToken("stop");
+                case EX_Assert:
+                    int lineNumb = readUnsignedShort();
+                    return new BytecodeToken("assert (" + next() + ")");
+                case EX_Case:
+                    int caseInd = readUnsignedShort();
+                    if (caseInd == 0xffff) {
+                        return new BytecodeToken("default:");
+                    } else
+                        return new BytecodeToken("case " + next() + ":");
+                case EX_Nothing:
+                    return new BytecodeToken("");
+                case EX_LabelTable:
+                    String labelName;
+                    int offset;
+                    do {
+                        labelName = readName();
+                        offset = readInt();
+                    } while (!labelName.equalsIgnoreCase("none"));
+                    return new BytecodeToken(""); //todo
+                case EX_GotoLabel:
+                    return new BytecodeToken("goto " + next());
+                case EX_EatString:
+                    return next();
+                case EX_Let:
+                case EX_LetBool:
+                    return new BytecodeToken(next() + " = " + next());
+                case EX_DynArrayElement:
+                case EX_ArrayElement:
+                    String ind = String.valueOf(next());
+                    String arr = String.valueOf(next());
+                    return new BytecodeToken(arr + "[" + ind + "]");
+                case EX_New:
+                    return new BytecodeToken("new (" + next() + ", " + next() + ", " + next() + ", " + next() + ")");
+                case EX_ClassContext:
+                case EX_Context:
+                    String res = String.valueOf(next());
+                    readUnsignedShort();
+                    readUnsignedByte();
+                    return new BytecodeToken(res + "." + next());
+                case EX_Metacast:
+                    return new BytecodeToken("Class<" + readRef(e -> e.getObjectName().getName()) + ">(" + next() + ")");
+                case EX_Unknown_jumpover:
+                    return new BytecodeToken("");
+                case EX_EndFunctionParms:
+                    return new BytecodeToken(")");
                 case EX_Self:
                     return new BytecodeToken("self");
                 case EX_Skip:
                     readUnsignedShort();
                     return next();
-//            case EX_EatReturnValue:
-//                _reader.ReadInt32();
-//                return ReadNext();
-                case EX_Nothing:
-                    return new NothingToken();
-//            case EX_Stop:
-//                _reader.ReadInt16();
-//                return new NothingToken();//
+                case EX_VirtualFunction:
+                    return readCall(readName());
+                case EX_FinalFunction:
+                    return readCall(readRef(e -> e.getObjectName().getName()).toString());
+                case EX_IntConst:
+                    return new BytecodeToken(String.valueOf(readInt()));
+                case EX_FloatConst:
+                    return new BytecodeToken(String.valueOf(readFloat()));
+                case EX_StringConst:
+                    return new BytecodeToken(readString());
+                case EX_ObjectConst:
+                    return new BytecodeToken(readRef(e -> e.getObjectName().getName()).toString());
+                case EX_NameConst:
+                    return new BytecodeToken(readName());
+                case EX_RotationConst:
+                    return new BytecodeToken(String.format("rot(%d,%d,%d)", readInt(), readInt(), readInt()));
+                case EX_VectorConst:
+                    return new BytecodeToken(String.format("vect(%f,%f,%f)", readFloat(), readFloat(), readFloat()));
+                case EX_ByteConst:
+                case EX_IntConstByte:
+                    return new BytecodeToken(String.valueOf(readUnsignedByte()));
                 case EX_IntZero:
                     return new BytecodeToken("0");
                 case EX_IntOne:
                     return new BytecodeToken("1");
                 case EX_True:
-                    return new BytecodeToken("true");
+                    return new BytecodeToken("True");
                 case EX_False:
-                    return new BytecodeToken("false");
+                    return new BytecodeToken("False");
                 case EX_NoObject:
                     return new BytecodeToken("None");
-                case EX_Let:
-                case EX_LetBool:
-                    BytecodeToken lhs = next();
-                    BytecodeToken rhs = next();
-                    return new BytecodeToken(lhs + " = " + rhs);
-                case EX_IntConst:
-                    return new BytecodeToken(String.valueOf(readInt()));
-                case EX_FloatConst:
-                    return new BytecodeToken(String.valueOf(readFloat()));
-                case EX_StringConst: {
-                    String s = readLine();
-                    return new BytecodeToken("\"" + s.replaceAll("\n", "\\n").replaceAll("\t", "\\t") + "\"");
-                }
-                case EX_FloatToInt:
-                    return new BytecodeToken("int(" + next() + ")");
-                case EX_FloatToString:
+                case EX_Unknown_jumpover2:
+                    readUnsignedByte();
                     return next();
-                case EX_ByteConst:
-                case EX_IntConstByte:
-                    return new BytecodeToken(String.valueOf(readUnsignedByte()));
-//
-//            case EX_ObjectConst:
-//            {
-//                int objectIndex = _reader.ReadInt32();
-//                var item = _package.ResolveClassItem(objectIndex);
-//                if (item == null) return ErrToken("Unresolved class item " + objectIndex);
-//                return Token(item.ClassName + "'" + item.ObjectName + "'");
-//            }
-//
-//            case EX_NameConst:
-//                return Token("'" + _package.Names[(int) _reader.ReadInt64()].Name + "'");
-//
-                case EX_EndFunctionParms:
-                    return new EndParmsToken(")");
-//            case EX_ClassContext:
-                case EX_Context: {
-                    BytecodeToken context = next();
-                    int exprSize = readUnsignedShort();
-                    int bSize = readUnsignedByte();
-                    BytecodeToken value = next();
-                    return new BytecodeToken(context + "." + value);
-                }
-
-//            case EX_InterfaceContext:
-//                return ReadNext();
-//
-//            case EX_FinalFunction:
-//            {
-//                int functionIndex = _reader.ReadInt32();
-//                var item = _package.ResolveClassItem(functionIndex);
-//                if (item == null) return ErrToken("Unresolved function item " + item);
-//                string functionName = item.ObjectName;
-//                return ReadCall(functionName);
-//            }
-//
-//            case EX_PrimitiveCast:
-//            {
-//                var prefix = _reader.ReadByte();
-//                var v = ReadNext();
-//                return v;
-//            }
-//
-                case EX_VirtualFunction:
-                    return readCall(readName());
-
-//            case EX_GlobalFunction:
-//                return ReadCall("Global." + ReadName());
-//
                 case EX_BoolVariable:
+                    return next();
+                case EX_DynamicCast:
+                    return new BytecodeToken(readRef(e -> e.getObjectName().getName()).toString() + "(" + next() + ")");
+                case EX_Iterator:
+                    BytecodeToken r = next();
+                    readUnsignedShort();
+                    return new BytecodeToken.ForeachToken(readUnsignedShort(), r);
+                case EX_IteratorPop:
+                    return new BytecodeToken.IteratorPopToken();
+                case EX_IteratorNext:
+                    return new BytecodeToken.IteratorNextToken();
+                case EX_StructCmpEq:
+                    readCompactInt();
+                    return new BytecodeToken(next() + "==" + next());
+                case EX_StructCmpNe:
+                    readCompactInt();
+                    return new BytecodeToken(next() + "!=" + next());
+                case EX_UnicodeStringConst:
+                    char ch;
+                    StringBuilder sb = new StringBuilder();
+                    do {
+                        ch = (char) readUnsignedShort();
+                        if (ch > 0)
+                            sb.append(ch);
+                    } while (ch != 0);
+                    return new BytecodeToken(sb.toString());
+                case EX_StructMember:
+                    String m = readRef(e -> e.getObjectName().getName()).toString();
+                    return new BytecodeToken(next() + "." + m);
+                case EX_Length:
+                    return new BytecodeToken(next() + ".Length");
+                case EX_GlobalFunction:
+                    return readCall("Global." + readName());
+                case EX_RotatorToVector:
+                case EX_Unknown5B:
+                    next_is_not_delegate = true;
+                    return next();
                 case EX_ByteToInt:
                 case EX_IntToByte:
+                case EX_ByteToFloat:
+                case EX_IntToFloat:
                     return next();
-
-//            case EX_DynamicCast:
-//            {
-//                int typeIndex = _reader.ReadInt32();
-//                var item = _package.ResolveClassItem(typeIndex);
-//                return WrapNextBytecode(op => Token(item.ObjectName + "(" + op + ")"));
-//            }
-//
-//            case EX_Metacast:
-//            {
-//                int typeIndex = _reader.ReadInt32();
-//                var item = _package.ResolveClassItem(typeIndex);
-//                if (item == null) return ErrToken("Unresolved class item " + typeIndex);
-//                return WrapNextBytecode(op => Token("Class<" + item.ObjectName + ">(" + op + ")"));
-//            }
-//
-                case EX_StructMember: {
-                    String field = unrealPackage.objectReference(readCompactInt()).getObjectName().getName();
-                    BytecodeToken from = next();
-                    return new BytecodeToken(from + "." + field);
-                }
-
-//            case EX_ArrayElement:
-//            case EX_DynArrayElement:
-//            {
-//                var index = ReadNext();
-//                if (IsInvalid(index)) return index;
-//                var array = ReadNext();
-//                if (IsInvalid(array)) return array;
-//                return Token(array + "[" + index + "]");
-//            }
-//            case EX_DynArrayLength:
-//                return wrapNextBytecode(op -> new BytecodeToken(op + ".Length"));
-//            case EX_StructCmpEq:
-//                return CompareStructs("==");
-//
-//            case EX_StructCmpNe:
-//                return CompareStructs("!=");
-//
-//            case EX_EndOfScript:
-//                return new EndOfScriptToken();
-//
-//            case EX_EmptyParmValue:
-//            case EX_GoW_DefaultValue:
-//                return new DefaultValueToken("");
-//            case EX_DefaultParmValue:
-//            {
-//                var size = _reader.ReadInt16();
-//                var offset = _reader.BaseStream.Position;
-//                var defaultValueExpr = ReadNext();
-//                _reader.BaseStream.Position = offset + size;
-//                return new DefaultParamValueToken(defaultValueExpr.ToString());
-//            }
-//
-//            case EX_LocalOutVariable:
-//                int valueIndex = _reader.ReadInt32();
-//                var packageItem = _package.ResolveClassItem(valueIndex);
-//                if (packageItem == null) return ErrToken("Unresolved package item " + packageItem);
-//                return Token(packageItem.ObjectName);
-//
-//            case EX_Iterator:
-//                BytecodeToken expr = next();
-//                int loopEnd = input.readUnsignedShort();
-//                return new ForeachToken(loopEnd, expr);
-//
-//            case EX_IteratorPop:
-//                return new IteratorPopToken();
-//
-//            case EX_IteratorNext:
-//                return new IteratorNextToken();
-//
-//            case EX_New:
-//                var outer = ReadNext();
-//                if (IsInvalid(outer)) return outer;
-//                var name = ReadNext();
-//                if (IsInvalid(name)) return name;
-//                var flags = ReadNext();
-//                if (IsInvalid(flags)) return flags;
-//                var cls = ReadNext();
-//                if (IsInvalid(cls)) return cls;
-//                return Token("new(" + JoinTokens(outer, name, flags, cls) + ")");
-//
-//            case EX_VectorConst:
-//                return new BytecodeToken("vect(" + input.readFloat() + "," + input.readFloat() + "," + input.readFloat() + ")");
-//            case EX_RotationConst:
-//                return new BytecodeToken("rot(" + input.readInt() + "," + input.readInt() + "," + input.readInt() + ")");
-//            case EX_InterfaceCast:
-//            {
-//                var interfaceName = ReadRef();
-//                return WrapNextBytecode(op => Token(interfaceName.ObjectName + "(" + op + ")"));
-//            }
-//
-//            case EX_Conditional:
-//            {
-//                var condition = ReadNext();
-//                if (IsInvalid(condition)) return condition;
-//                var trueSize = _reader.ReadInt16();
-//                var pos = _reader.BaseStream.Position;
-//                var truePart = ReadNext();
-//                if (IsInvalid(truePart)) return WrapErrToken(condition + " ? " + truePart, truePart);
-//                if (_reader.BaseStream.Position != pos + trueSize)
-//                    return ErrToken("conditional true part size mismatch");
-//                var falseSize = _reader.ReadInt16();
-//                pos = _reader.BaseStream.Position;
-//                var falsePart = ReadNext();
-//                if (IsInvalid(truePart)) return WrapErrToken(condition + " ? " + truePart + " : " + falsePart, falsePart);
-//                Debug.Assert(_reader.BaseStream.Position == pos + falseSize);
-//                return Token(condition + " ? " + truePart + " : " + falsePart);
-//            }
-//
-//            case EX_DynArrayFind:
-//                return ReadDynArray1ArgMethod("Find");
-//
-//            case EX_DynArrayFindStruct:
-//                return ReadDynArray2ArgMethod("Find", true);
-//
-//            case EX_DynArrayRemove:
-//                return ReadDynArray2ArgMethod("Remove", false);
-//
-//            case EX_DynArrayInsert:
-//                return ReadDynArray2ArgMethod("Insert", false);
-//
-//            case EX_DynArrayAddItem:
-//                return ReadDynArray1ArgMethod("AddItem");
-//
-//            case EX_DynArrayRemoveItem:
-//                return ReadDynArray1ArgMethod("RemoveItem");
-//
-//            case EX_DynArrayInsertItem:
-//                return ReadDynArray2ArgMethod("InsertItem", true);
-
-//            case EX_DynArrayIterator:
-//            {
-//                var array = ReadNext();
-//                if (IsInvalid(array)) return array;
-//                var iteratorVar = ReadNext();
-//                if (IsInvalid(iteratorVar)) return iteratorVar;
-//                _reader.ReadInt16();
-//                var endOffset = _reader.ReadInt16();
-//                return new ForeachToken(endOffset, array, iteratorVar);
-//            }
-//
-//            case EX_DelegateProperty:
-//            case EX_InstanceDelegate:
-//                return Token(ReadName());
-//
-//            case EX_DelegateFunction:
-//            {
-//                var receiver = ReadNext();
-//                if (IsInvalid(receiver)) return receiver;
-//                var methodName = ReadName();
-//                if (receiver.ToString().StartsWith("__") && receiver.ToString().EndsWith("__Delegate"))
-//                {
-//                    return ReadCall(methodName);
-//                }
-//                return ReadCall(receiver + "." + methodName);
-//            }
-//
-//            case EX_EqualEqual_DelDel:
-//            case EX_EqualEqual_DelFunc:
-//                return CompareDelegates("==");
-//
-//            case EX_NotEqual_DelDel:
-//            case EX_NotEqual_DelFunc:
-//                return CompareDelegates("!=");
+                case EX_ByteToBool:
+                case EX_IntToBool:
+                    return new BytecodeToken("bool(" + next() + ")");
+                case EX_BoolToByte:
+                    return new BytecodeToken("byte(" + next() + ")");
+                case EX_Remove:
+                    return new BytecodeToken(next() + ".Remove(" + next() + ", " + next() + ")");
+                case EX_BoolToFloat:
+                    return new BytecodeToken("float(" + next() + ")");
+                case EX_DelegateCall://EX_FloatToByte
+                    if (next_is_not_delegate) {
+                        return new BytecodeToken("byte(" + next() + ")");
+                    } else {
+                        next_is_not_delegate = false;
+                        readRef(e -> null);
+                        return readCall(readRef(e -> e.getObjectName().getName()).toString());
+                    }
+                case EX_DelegateName://EX_FloatToInt
+                    if (next_is_not_delegate) {
+                        return new BytecodeToken("int(" + next() + ")");
+                    } else {
+                        next_is_not_delegate = false;
+                        readRef(e -> null);
+                        return readCall(readName());
+                    }
+                case EX_DelegateAssign://EX_FloatToBool
+                    if (next_is_not_delegate) {
+                        return new BytecodeToken("bool(" + next() + ")");
+                    } else {
+                        next_is_not_delegate = false;
+                        return new BytecodeToken(next() + " = " + next());
+                    }
+                case EX_StringToName:
+                    return new BytecodeToken(next() + ".Empty()");
+                case EX_ObjectToBool:
+                case EX_StringToBool:
+                case EX_VectorToBool:
+                case EX_RotatorToBool:
+                    return new BytecodeToken("bool(" + next() + ")");
+                case EX_NameToBool:
+                    BytecodeToken r1 = next();
+                    readUnsignedShort();
+                    BytecodeToken r2 = next();
+                    readUnsignedShort();
+                    BytecodeToken r3 = next();
+                    return new BytecodeToken("(" + r1 + " ?? " + r2 + " : " + r3 + ")");
+                case EX_StringToByte:
+                    return new BytecodeToken("col(" + readUnsignedByte() + ", " + readUnsignedByte() + ", " + readUnsignedByte() + ", " + readUnsignedByte() + ")");
+                case EX_StringToInt:
+                    return new BytecodeToken("int(" + next() + ")");
+                case EX_StringToFloat:
+                    return new BytecodeToken("float(" + next() + ")");
+                case EX_StringToVector:
+                    return new BytecodeToken("vector(" + next() + ")");
+                case EX_StringToRotator:
+                case EX_VectorToRotator:
+                    return new BytecodeToken("rotator(" + next() + ")");
+                case EX_ByteToString:
+                case EX_IntToString:
+                case EX_BoolToString:
+                case EX_FloatToString:
+                case EX_ObjectToString:
+                case EX_NameToString:
+                case EX_VectorToString:
+                case EX_RotatorToString:
+                    return new BytecodeToken("string(" + next() + ")");
+                case EX_StringToName2:
+                    return new BytecodeToken("name(" + next() + ")");
                 default:
                     if (b >= 0x60) {
                         return readNativeCall(b);
@@ -381,28 +258,75 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
         }
     }
 
-    private BytecodeToken CompareDelegates(String op) throws IOException {
-        BytecodeToken operand1 = next();
-        BytecodeToken operand2 = next();
-        next();  // close paren
-        return new BytecodeToken(operand1 + " " + op + " " + operand2);
+    private int readUnsignedByte() throws IOException {
+        int val = input.readUnsignedByte();
+        readSize += 1;
+        return val;
     }
 
-    private BytecodeToken readRef(Function<UnrealPackageFile.Entry, String> function) throws IOException {
+    private int readUnsignedShort() throws IOException {
+        int val = input.readUnsignedShort();
+        readSize += 2;
+        return val;
+    }
+
+    private int readInt() throws IOException {
+        int val = input.readInt();
+        readSize += 4;
+        return val;
+    }
+
+    private float readFloat() throws IOException {
+        float val = input.readFloat();
+        readSize += 4;
+        return val;
+    }
+
+    private int readCompactInt() throws IOException {
+        int val = input.readCompactInt();
+        readSize += 4;
+        return val;
+    }
+
+    private String readString() throws IOException {
+        String val = input.readLine();
+        readSize += val.length() + 1;
+        return val;
+    }
+
+    private String readName() throws IOException {
+        return unrealPackage.nameReference(readCompactInt());
+    }
+
+    private BytecodeToken readRef(Function<UnrealPackageReadOnly.Entry, String> function) throws IOException {
         return new BytecodeToken(function.apply(unrealPackage.objectReference(readCompactInt())));
     }
 
-    private BytecodeToken wrapNextBytecode(Function<BytecodeToken, BytecodeToken> function) throws IOException {
-        return function.apply(next());
-    }
+    private BytecodeToken readNativeCall(int b) throws IOException {
+        int nativeIndex;
+        if ((b & 0xF0) == EX_ExtendedNative) {
+            nativeIndex = ((b - EX_ExtendedNative) << 8) + readUnsignedByte();
+        } else {
+            nativeIndex = b;
+        }
+        if (nativeIndex < EX_FirstNative)
+            throw new IllegalStateException("Invalid native index " + nativeIndex);
 
-    private BytecodeToken ReadDynArray2ArgMethod(String methodName, boolean skip2Bytes) throws IOException {
-        BytecodeToken array = next();
-        if (skip2Bytes)
-            input.readUnsignedShort();
-        BytecodeToken index = next();
-        BytecodeToken count = next();
-        return new BytecodeToken(array + "." + methodName + "(" + index + ", " + count + ")");
+        NativeFunction nativeFunction = naviveFunctionSupplier.apply(nativeIndex);
+        if (nativeFunction.isPreOperator() ||
+                (nativeFunction.isOperator() && nativeFunction.getOperatorPrecedence() == 0)) {
+            BytecodeToken p = next();
+            next();   // end of parms
+            if (nativeFunction.isPreOperator())
+                return new BytecodeToken(nativeFunction.getName() + p);
+            return new BytecodeToken(p + nativeFunction.getName());
+        } else if (nativeFunction.isOperator()) {
+            BytecodeToken p1 = next();
+            BytecodeToken p2 = next();
+            next();  // end of parms
+            return new BytecodeToken(p1 + " " + nativeFunction.getName() + " " + p2);
+        } else
+            return readCall(nativeFunction.getName());
     }
 
     private BytecodeToken readCall(String functionName) throws IOException {
@@ -411,88 +335,15 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
         int count = 0;
         do {
             p = next();
-            if (!(p instanceof DefaultValueToken)) {
-                if (count > 0 && !(p instanceof EndParmsToken))
+            if (!(p instanceof BytecodeToken.DefaultValueToken)) {
+                if (count > 0 && !(p instanceof BytecodeToken.EndParmsToken))
                     builder.append(", ");
                 builder.append(p);
                 count++;
             }
-        } while (!(p instanceof EndParmsToken));
+        } while (!(p instanceof BytecodeToken.EndParmsToken));
         return new BytecodeToken(builder.toString());
     }
-
-    private String readName() throws IOException {
-        return unrealPackage.nameReference(readCompactInt());
-    }
-
-    private BytecodeToken readNativeCall(int b) throws IOException {
-        int nativeIndex;
-        if ((b & 0xF0) == 0x60) {
-            nativeIndex = ((b - 0x60) << 8) + readUnsignedByte();
-        } else {
-            nativeIndex = b;
-        }
-        if (nativeIndex < EX_FirstNative)
-            throw new IllegalStateException("Invalid native index " + nativeIndex);
-
-        acmi.l2.clientmod.unreal.Core.Function function = classLoader.getNativeFunctionQuetly(nativeIndex)
-                .orElseThrow(() -> new IllegalStateException("Native function " + nativeIndex + " not found"));
-        List<acmi.l2.clientmod.unreal.Core.Function.Flag> flags = acmi.l2.clientmod.unreal.Core.Function.Flag.getFlags(function.functionFlags);
-        //System.out.println(function.toString() + flags.toString());
-        if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.PRE_OPERATOR) ||
-                (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.OPERATOR) && function.operatorPrecedence == 0)) {
-            BytecodeToken p = next();
-            next();   // end of parms
-            if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.PRE_OPERATOR))
-                return new BytecodeToken(function.getFriendlyName() + p);
-            return new BytecodeToken(p + function.getFriendlyName());
-        } else if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.OPERATOR)) {
-            BytecodeToken p1 = next();
-            BytecodeToken p2 = next();
-            next();  // end of parms
-            return new BytecodeToken(p1 + " " + function.getFriendlyName() + " " + p2);
-        } else
-            return readCall(function.getFriendlyName());
-    }
-
-    private int readUnsignedByte() throws IOException {
-        int val = input.readUnsignedByte();
-        read += 1;
-        return val;
-    }
-
-    private int readUnsignedShort() throws IOException {
-        int val = input.readUnsignedShort();
-        read += 2;
-        return val;
-    }
-
-    private int readInt() throws IOException {
-        int val = input.readInt();
-        read += 4;
-        return val;
-    }
-
-    private float readFloat() throws IOException {
-        float val = input.readFloat();
-        read += 4;
-        return val;
-    }
-
-    private int readCompactInt() throws IOException {
-        int val = input.readCompactInt();
-        read += 4;
-        return val;
-    }
-
-    private String readLine() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        int b;
-        while ((b = readUnsignedByte()) != 0)
-            baos.write(b);
-        return new String(baos.toByteArray(), input.getCharset());
-    }
-
 
     private static final int EX_LocalVariable = 0x00;
     private static final int EX_InstanceVariable = 0x01;

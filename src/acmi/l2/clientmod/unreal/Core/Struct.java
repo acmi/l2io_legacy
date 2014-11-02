@@ -23,6 +23,8 @@ package acmi.l2.clientmod.unreal.Core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeReader;
+import acmi.l2.clientmod.unreal.bytecode.NativeFunctionsHardcode;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;
@@ -47,11 +49,11 @@ public class Struct extends Field {
         scriptSize = input.readInt();
         if (scriptSize != 0) {
             //TODO code statements
-            /*BytecodeReader bytecodeReader = new BytecodeReader(input, scriptSize, entry.getUnrealPackage(), propertiesUtil.getUnrealClassLoader());
+            BytecodeReader bytecodeReader = new BytecodeReader(input, scriptSize, entry.getUnrealPackage(), new NativeFunctionsHardcode());
             System.out.println(entry);
-            while (bytecodeReader.hasNext()){
-                System.out.println("\t"+bytecodeReader.next());
-            }*/
+            while (bytecodeReader.hasNext()) {
+                System.out.println("\t" + bytecodeReader.next());
+            }
         }
     }
 

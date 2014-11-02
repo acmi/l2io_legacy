@@ -27,8 +27,8 @@ import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.Function;
 
 import static acmi.l2.clientmod.unreal.bytecode.BytecodeToken.*;
@@ -435,18 +435,18 @@ public class OldBytecodeReader implements Iterator<BytecodeToken> {
         if (nativeIndex < EX_FirstNative)
             throw new IllegalStateException("Invalid native index " + nativeIndex);
 
-        acmi.l2.clientmod.unreal.Core.Function function = classLoader.getNativeFunctionQuetly(nativeIndex)
+        acmi.l2.clientmod.unreal.core.Function function = classLoader.getNativeFunctionQuetly(nativeIndex)
                 .orElseThrow(() -> new IllegalStateException("Native function " + nativeIndex + " not found"));
-        List<acmi.l2.clientmod.unreal.Core.Function.Flag> flags = acmi.l2.clientmod.unreal.Core.Function.Flag.getFlags(function.functionFlags);
+        Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = acmi.l2.clientmod.unreal.core.Function.Flag.getFlags(function.functionFlags);
         //System.out.println(function.toString() + flags.toString());
-        if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.PRE_OPERATOR) ||
-                (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.OPERATOR) && function.operatorPrecedence == 0)) {
+        if (flags.contains(acmi.l2.clientmod.unreal.core.Function.Flag.PRE_OPERATOR) ||
+                (flags.contains(acmi.l2.clientmod.unreal.core.Function.Flag.OPERATOR) && function.operatorPrecedence == 0)) {
             BytecodeToken p = next();
             next();   // end of parms
-            if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.PRE_OPERATOR))
+            if (flags.contains(acmi.l2.clientmod.unreal.core.Function.Flag.PRE_OPERATOR))
                 return new BytecodeToken(function.getFriendlyName() + p);
             return new BytecodeToken(p + function.getFriendlyName());
-        } else if (flags.contains(acmi.l2.clientmod.unreal.Core.Function.Flag.OPERATOR)) {
+        } else if (flags.contains(acmi.l2.clientmod.unreal.core.Function.Flag.OPERATOR)) {
             BytecodeToken p1 = next();
             BytecodeToken p2 = next();
             next();  // end of parms

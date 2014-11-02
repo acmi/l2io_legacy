@@ -24,9 +24,9 @@ package acmi.l2.clientmod.unreal.properties;
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -47,13 +47,13 @@ import java.util.List;
 public interface PropertiesUtil {
     UnrealClassLoader getUnrealClassLoader();
 
-    List<L2Property> readProperties(DataInput dataInput, UnrealPackageReadOnly up, String objClass) throws IOException;
+    List<L2Property> readProperties(DataInput dataInput, String objClass, UnrealPackageReadOnly up) throws UnrealException;
 
-    List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws IOException;
+    List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws UnrealException;
 
-    void writeProperties(DataOutput buffer, UnrealPackageReadOnly up, List<L2Property> list) throws IOException;
+    void writeProperties(DataOutput buffer, List<L2Property> list, UnrealPackageReadOnly up) throws UnrealException;
 
-    void writeStructBin(DataOutput objBuffer, String structName, UnrealPackageReadOnly up, List<L2Property> struct) throws IOException;
+    void writeStructBin(DataOutput objBuffer, List<L2Property> struct, String structName, UnrealPackageReadOnly up) throws UnrealException;
 
     public static L2Property getAt(List<L2Property> properties, String name) {
         return properties.stream()

@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Core;
+package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
@@ -67,7 +67,7 @@ public class Class extends State {
 
     public void readProperties() throws IOException {
         if (scriptSize == 0) {
-            properties.addAll(propertiesUtil.readProperties(buffer, getEntry().getUnrealPackage(), getEntry().getObjectFullName()));
+            properties.addAll(propertiesUtil.readProperties(buffer, getEntry().getObjectFullName(), getEntry().getUnrealPackage()));
             buffer = null;
         }
     }

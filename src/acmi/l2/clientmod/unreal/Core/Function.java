@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Core;
+package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
@@ -42,30 +42,87 @@ public class Function extends Struct {
         nativeIndex = input.readUnsignedShort();
         operatorPrecedence = input.readUnsignedByte();
         functionFlags = input.readInt();
-        replicationOffset = (functionFlags & 0x40) != 0 ? input.readUnsignedShort() : 0;
+        replicationOffset = (functionFlags & Flag.NET.getMask()) != 0 ? input.readUnsignedShort() : 0;
     }
 
     public enum Flag {
-        FINAL(0),
-        DEFINED(2),
-        LATENT(3),
-        PRE_OPERATOR(4),
-        NET(6),
-        NETRELIABLE(7),
-        SIMULATED(8),
-        EXEC(9),
-        NATIVE(10),
-        EVENT(11),
-        OPERATOR(12),
-        STATIC(13),
-        PROTECTED(19),
-        DELEGATE(20);
+        /**
+         * Function is final (prebindable, non-overridable function).
+         */
+        FINAL,
+        /**
+         * Function has been defined (not just declared).
+         */
+        DEFINED,
+        /**
+         * Function is an iterator.
+         */
+        ITERATOR,
+        /**
+         * Function is a latent state function.
+         */
+        LATENT,
+        /**
+         * Unary operator is a prefix operator.
+         */
+        PRE_OPERATOR,
+        /**
+         * Function cannot be reentered.
+         */
+        SINGULAR,
+        /**
+         * Function is network-replicated.
+         */
+        NET,
+        /**
+         * Function should be sent reliably on the network.
+         */
+        NET_RELIABLE,
+        /**
+         * Function executed on the client side.
+         */
+        SIMULATED,
+        /**
+         * Executable from command line.
+         */
+        EXEC,
+        /**
+         * Native function.
+         */
+        NATIVE,
+        /**
+         * Event function.
+         */
+        EVENT,
+        /**
+         * Operator function.
+         */
+        OPERATOR,
+        /**
+         * Static function.
+         */
+        STATIC,
+        /**
+         * Don't export intrinsic function to C++.
+         */
+        NO_EXPORT,
+        /**
+         * Function doesn't modify this object.
+         */
+        CONST,
+        /**
+         * Return value is purely dependent on parameters; no state dependencies or internal state changes.
+         */
+        INVARIANT,
+        PROTECTED,
+        Flag18,
+        Flag19,
+        /**
+         * Function is a delegate
+         */
+        DELEGATE;
 
-        private int mask;
-
-        Flag(int bit) {
-            this.mask = 1 << bit;
-        }
+        private int mask = 1 << ordinal();
 
         public int getMask() {
             return mask;

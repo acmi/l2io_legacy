@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Core;
+package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
@@ -48,7 +48,7 @@ public class Object {
         }
 
         if (!(this instanceof Class))
-            properties.addAll(propertiesUtil.readProperties(input, this.entry.getUnrealPackage(), this.entry.getObjectClass().getObjectFullName()));
+            properties.addAll(propertiesUtil.readProperties(input, this.entry.getObjectClass().getObjectFullName(), this.entry.getUnrealPackage()));
     }
 
     protected Object() {
@@ -59,7 +59,7 @@ public class Object {
             stateFrame.writeTo(output);
 
         if (!(this instanceof Class))
-            propertiesUtil.writeProperties(output, entry.getUnrealPackage(), properties);
+            propertiesUtil.writeProperties(output, properties, entry.getUnrealPackage());
     }
 
     public UnrealPackageReadOnly.ExportEntry getEntry() {

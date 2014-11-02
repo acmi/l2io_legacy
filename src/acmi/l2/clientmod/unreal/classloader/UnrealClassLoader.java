@@ -21,9 +21,10 @@
  */
 package acmi.l2.clientmod.unreal.classloader;
 
-import acmi.l2.clientmod.unreal.Core.Field;
-import acmi.l2.clientmod.unreal.Core.Function;
-import acmi.l2.clientmod.unreal.Core.Struct;
+import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.core.Field;
+import acmi.l2.clientmod.unreal.core.Function;
+import acmi.l2.clientmod.unreal.core.Struct;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.util.List;
@@ -32,50 +33,50 @@ import java.util.Optional;
 public interface UnrealClassLoader {
     PropertiesUtil getPropertiesUtil();
 
-    Struct getStruct(String structName) throws ClassLoadException;
+    Struct getStruct(String structName) throws UnrealException;
 
     default Optional<Struct> getStructQuetly(String structName) {
         try {
             return Optional.of(getStruct(structName));
-        } catch (ClassLoadException e) {
+        } catch (UnrealException e) {
             return Optional.ofNullable(null);
         }
     }
 
-    List<Field> getStructFields(String structName) throws ClassLoadException;
+    List<Field> getStructFields(String structName) throws UnrealException;
 
     default Optional<List<Field>> getStructFieldsQuetly(String structName) {
         try {
-            return Optional.ofNullable(getStructFields(structName)); //todo can be null?
-        } catch (ClassLoadException e) {
+            return Optional.of(getStructFields(structName));
+        } catch (UnrealException e) {
             return Optional.ofNullable(null);
         }
     }
 
-    default Field getField(String field) throws ClassLoadException {
+    default Field getField(String field) throws UnrealException {
         int delimiterInd = field.lastIndexOf('.');
         String struct = field.substring(0, delimiterInd);
         String fieldName = field.substring(delimiterInd + 1);
         return getStructFields(struct).stream()
                 .filter(f -> f.getEntry().getObjectName().getName().equalsIgnoreCase(fieldName))
                 .findAny()
-                .orElseThrow(() -> new ClassLoadException(String.format("Filed %s not found", field)));
+                .orElseThrow(() -> new UnrealException(String.format("Field %s not found", field)));
     }
 
     default Optional<Field> getFieldQuetly(String field) {
         try {
             return Optional.of(getField(field));
-        } catch (ClassLoadException e) {
+        } catch (UnrealException e) {
             return Optional.ofNullable(null);
         }
     }
 
-    Function getNativeFunction(int index) throws ClassLoadException;
+    Function getNativeFunction(int index) throws UnrealException;
 
     default Optional<Function> getNativeFunctionQuetly(int index) {
         try {
             return Optional.of(getNativeFunction(index));
-        } catch (ClassLoadException e) {
+        } catch (UnrealException e) {
             return Optional.ofNullable(null);
         }
     }

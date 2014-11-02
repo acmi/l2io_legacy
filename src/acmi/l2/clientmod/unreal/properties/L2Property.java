@@ -22,7 +22,7 @@
 package acmi.l2.clientmod.unreal.properties;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Core.Property;
+import acmi.l2.clientmod.unreal.core.Property;
 
 import java.util.Arrays;
 

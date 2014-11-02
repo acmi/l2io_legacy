@@ -25,8 +25,8 @@ import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataInputStream;
 import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Core.Class;
-import acmi.l2.clientmod.unreal.Core.*;
+import acmi.l2.clientmod.unreal.core.Class;
+import acmi.l2.clientmod.unreal.core.*;
 import acmi.l2.clientmod.unreal.properties.L2Property;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtilImpl;
@@ -235,7 +235,7 @@ public class OldClassLoaderImpl implements UnrealClassLoader {
     }
 
     public String getSuperClass(String clazz) {
-        Optional<acmi.l2.clientmod.unreal.Core.Class> childClass = getUClass(clazz);
+        Optional<acmi.l2.clientmod.unreal.core.Class> childClass = getUClass(clazz);
         if (childClass.isPresent()) {
             return childClass.get().getEntry().getObjectSuperClass().getObjectFullName();
         }

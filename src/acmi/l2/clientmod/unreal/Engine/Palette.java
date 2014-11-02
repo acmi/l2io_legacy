@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Engine;
+package acmi.l2.clientmod.unreal.engine;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
@@ -28,7 +28,7 @@ import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;
 
-public class Palette extends acmi.l2.clientmod.unreal.Core.Object {
+public class Palette extends acmi.l2.clientmod.unreal.core.Object {
     private int[] colors;
 
     public Palette(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {

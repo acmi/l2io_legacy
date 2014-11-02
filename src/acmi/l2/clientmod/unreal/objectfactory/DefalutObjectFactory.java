@@ -25,15 +25,21 @@ import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataInputStream;
 import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Core.Object;
+import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.unreal.core.Object;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.logging.Logger;
 
 public class DefalutObjectFactory implements ObjectFactory {
+    private static final Logger log = Logger.getLogger(DefalutObjectFactory.class.getName());
+
+    public static String unrealClassesPackage = "acmi.l2.clientmod.unreal";
+
     private final UnrealClassLoader classLoader;
 
     public DefalutObjectFactory(UnrealClassLoader classLoader) {
@@ -45,7 +51,7 @@ public class DefalutObjectFactory implements ObjectFactory {
     }
 
     @Override
-    public Object readObject(UnrealPackageReadOnly.ExportEntry entry) throws IOException {
+    public Object apply(UnrealPackageReadOnly.ExportEntry entry) throws UnrealException {
         if (entry.getObjectClass() == null)
             return classLoader.getStructQuetly(entry.getObjectFullName())
                     .orElseThrow(() -> new IllegalArgumentException("Class can only be loaded from classpath, use " + UnrealClassLoader.class.getSimpleName()));
@@ -55,27 +61,40 @@ public class DefalutObjectFactory implements ObjectFactory {
             Constructor<? extends Object> constructor = clazz.getConstructor(DataInput.class, UnrealPackageFile.ExportEntry.class, PropertiesUtil.class);
             ByteArrayInputStream bais = new ByteArrayInputStream(entry.getObjectRawDataExternally());
             DataInputStream dis = new DataInputStream(bais, entry.getOffset(), entry.getUnrealPackage().getCharset());
-            return constructor.newInstance(dis, entry, classLoader.getPropertiesUtil());
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            Object object = constructor.newInstance(dis, entry, classLoader.getPropertiesUtil());
+            if (dis.available() > 0)
+                log.warning(() -> String.format("%d bytes of %s not read", bais.available(), object));
+            return object;
+        } catch (ReflectiveOperationException | IOException e) {
+            throw new UnrealException(e);
         }
     }
 
-    private java.lang.Class<? extends Object> getClass(String clazz) {
-        if (clazz.equals("Core.Object"))
+    private java.lang.Class<? extends Object> getClass(String className) {
+        if (className.equals("Core.Object"))
             return AsIsObject.class;
 
-        String name = getClass().getPackage().getName() + "." + clazz;
+        Class<?> clazz = null;
         try {
-            return java.lang.Class.forName(name).asSubclass(Object.class);
+            String javaClassName = unrealClassesPackage + "." + unrealClassNameToJavaClassName(className);
+            log.fine(() -> String.format("%s -> %s", className, javaClassName));
+            clazz = java.lang.Class.forName(javaClassName);
+            return clazz.asSubclass(Object.class);
         } catch (ClassNotFoundException e) {
-            //System.err.println(name + " not found");
+            log.fine(() -> String.format("Class %s not implemented in java", className));
+        } catch (ClassCastException e) {
+            Class<?> clazzLocal = clazz;
+            log.warning(() -> String.format("%s is not subclass of %s", clazzLocal, Object.class));
         }
 
-        String parent = classLoader.getSuperClass(clazz);
+        String parent = classLoader.getSuperClass(className);
         if (parent == null)
             parent = "Core.Object";
-
         return getClass(parent);
+    }
+
+    private String unrealClassNameToJavaClassName(String className) {
+        String[] path = className.split("\\.");
+        return String.format("%s.%s", path[0].toLowerCase(), path[1]);
     }
 }

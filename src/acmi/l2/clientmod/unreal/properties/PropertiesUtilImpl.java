@@ -22,8 +22,9 @@
 package acmi.l2.clientmod.unreal.properties;
 
 import acmi.l2.clientmod.io.*;
-import acmi.l2.clientmod.unreal.Core.*;
+import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.unreal.core.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -53,7 +54,7 @@ public class PropertiesUtilImpl implements PropertiesUtil {
     }
 
     @Override
-    public List<L2Property> readProperties(DataInput dataInput, UnrealPackageReadOnly up, String objClass) throws IOException {
+    public List<L2Property> readProperties(DataInput dataInput, String objClass, UnrealPackageReadOnly up) throws UnrealException {
         List<L2Property> properties = new ArrayList<>();
 
         List<Property> classTemplate = unrealClassLoader.getStructFieldsQuetly(objClass)
@@ -64,51 +65,55 @@ public class PropertiesUtilImpl implements PropertiesUtil {
                 .collect(Collectors.toCollection(ArrayList::new));
         Collections.reverse(classTemplate);
 
-        String name;
-        while (!(name = up.getNameTable().get(dataInput.readCompactInt()).getName()).equals("None")) {
-            int info = dataInput.readUnsignedByte();
-            Type propertyType = Type.values()[info & 0b1111];
-            int sizeType = (info >> 4) & 0b111;
-            boolean array = info >> 7 == 1;
+        try {
+            String name;
+            while (!(name = up.getNameTable().get(dataInput.readCompactInt()).getName()).equals("None")) {
+                int info = dataInput.readUnsignedByte();
+                Type propertyType = Type.values()[info & 0b1111];
+                int sizeType = (info >> 4) & 0b111;
+                boolean array = info >> 7 == 1;
 
-            String structName = propertyType.equals(Type.STRUCT) ?
-                    up.getNameTable().get(dataInput.readCompactInt()).getName() : null;
-            int size = readPropertySize(sizeType, dataInput);
-            int arrayIndex = array && !propertyType.equals(Type.BOOL) ? dataInput.readCompactInt() : 0;
+                String structName = propertyType.equals(Type.STRUCT) ?
+                        up.getNameTable().get(dataInput.readCompactInt()).getName() : null;
+                int size = readPropertySize(sizeType, dataInput);
+                int arrayIndex = array && !propertyType.equals(Type.BOOL) ? dataInput.readCompactInt() : 0;
 
-            byte[] objBytes = new byte[size];
-            dataInput.readFully(objBytes);
+                byte[] objBytes = new byte[size];
+                dataInput.readFully(objBytes);
 
-            final String n = name;
-            PropertiesUtil.getAt(properties, n);
-            L2Property property = PropertiesUtil.getAt(properties, n);
-            if (property == null) {
-                Property template = classTemplate.stream()
-                        .filter(pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase((n)))
-                        .findAny()
-                        .orElse(null);
-                if (template == null)
-                    throw new IllegalStateException(objClass + ": Property template not found: " + name);
+                final String n = name;
+                PropertiesUtil.getAt(properties, n);
+                L2Property property = PropertiesUtil.getAt(properties, n);
+                if (property == null) {
+                    Property template = classTemplate.stream()
+                            .filter(pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase((n)))
+                            .findAny()
+                            .orElse(null);
+                    if (template == null)
+                        throw new UnrealException(objClass + ": Property template not found: " + name);
 
-                property = new L2Property(template, up);
-                properties.add(property);
+                    property = new L2Property(template, up);
+                    properties.add(property);
+                }
+
+                if (structName != null &&
+                        !"Vector".equals(structName) &&
+                        !"Rotator".equals(structName) &&
+                        !"Color".equals(structName)) {
+                    StructProperty structProperty = (StructProperty) property.getTemplate();
+                    structName = structProperty.getStructType().getObjectFullName();
+                }
+                UnrealPackageReadOnly.ExportEntry arrayInner = null;
+                if (propertyType.equals(Type.ARRAY)) {
+                    ArrayProperty arrayProperty = (ArrayProperty) property.getTemplate();
+                    arrayInner = (UnrealPackageReadOnly.ExportEntry) arrayProperty.getInner();
+                }
+
+                DataInput objBuffer = new DataInputStream(new ByteArrayInputStream(objBytes), dataInput.getCharset());
+                property.putAt(arrayIndex, read(objBuffer, propertyType, array, arrayInner, structName, up));
             }
-
-            if (structName != null &&
-                    !"Vector".equals(structName) &&
-                    !"Rotator".equals(structName) &&
-                    !"Color".equals(structName)) {
-                StructProperty structProperty = (StructProperty) property.getTemplate();
-                structName = structProperty.getStructType().getObjectFullName();
-            }
-            UnrealPackageReadOnly.ExportEntry arrayInner = null;
-            if (propertyType.equals(Type.ARRAY)) {
-                ArrayProperty arrayProperty = (ArrayProperty) property.getTemplate();
-                arrayInner = (UnrealPackageReadOnly.ExportEntry) arrayProperty.getInner();
-            }
-
-            DataInput objBuffer = new DataInputStream(new ByteArrayInputStream(objBytes), dataInput.getCharset());
-            property.putAt(arrayIndex, read(objBuffer, propertyType, array, arrayInner, structName, up));
+        } catch (IOException e) {
+            throw new UnrealException(e);
         }
 
         return properties;
@@ -201,12 +206,12 @@ public class PropertiesUtilImpl implements PropertiesUtil {
             case "Color":
                 return readStructBin(objBuffer, "Core.Object.Color", up);
             default:
-                return readProperties(objBuffer, up, structName);
+                return readProperties(objBuffer, structName, up);
         }
     }
 
     @Override
-    public List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws IOException {
+    public List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws UnrealException {
         List<Property> properties = unrealClassLoader.getStructFieldsQuetly(structName)
                 .orElseThrow(() -> new IllegalStateException(structName + " not found"))
                 .stream()
@@ -214,102 +219,110 @@ public class PropertiesUtilImpl implements PropertiesUtil {
                 .map(f -> (Property) f)
                 .collect(Collectors.toList());
 
-        switch (structName) {
-            case "Core.Object.Vector": {
-                L2Property x = new L2Property(properties.get(0), up);
-                x.putAt(0, objBuffer.readFloat());
-                L2Property y = new L2Property(properties.get(1), up);
-                y.putAt(0, objBuffer.readFloat());
-                L2Property z = new L2Property(properties.get(2), up);
-                z.putAt(0, objBuffer.readFloat());
-                return Arrays.asList(x, y, z);
+        try {
+            switch (structName) {
+                case "Core.Object.Vector": {
+                    L2Property x = new L2Property(properties.get(0), up);
+                    x.putAt(0, objBuffer.readFloat());
+                    L2Property y = new L2Property(properties.get(1), up);
+                    y.putAt(0, objBuffer.readFloat());
+                    L2Property z = new L2Property(properties.get(2), up);
+                    z.putAt(0, objBuffer.readFloat());
+                    return Arrays.asList(x, y, z);
+                }
+                case "Core.Object.Rotator": {
+                    L2Property pitch = new L2Property(properties.get(0), up);
+                    pitch.putAt(0, objBuffer.readInt());
+                    L2Property yaw = new L2Property(properties.get(1), up);
+                    yaw.putAt(0, objBuffer.readInt());
+                    L2Property roll = new L2Property(properties.get(2), up);
+                    roll.putAt(0, objBuffer.readInt());
+                    return Arrays.asList(pitch, yaw, roll);
+                }
+                case "Core.Object.Color": {
+                    L2Property b = new L2Property(properties.get(0), up);
+                    b.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property g = new L2Property(properties.get(1), up);
+                    g.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property r = new L2Property(properties.get(2), up);
+                    r.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property a = new L2Property(properties.get(3), up);
+                    a.putAt(0, objBuffer.readUnsignedByte());
+                    return Arrays.asList(b, g, r, a);
+                }
+                case "Fire.FireTexture.Spark": {
+                    L2Property type = new L2Property(properties.get(0), up);
+                    type.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property heat = new L2Property(properties.get(1), up);
+                    heat.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property x = new L2Property(properties.get(2), up);
+                    x.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property y = new L2Property(properties.get(3), up);
+                    y.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property byteA = new L2Property(properties.get(4), up);
+                    byteA.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property byteB = new L2Property(properties.get(5), up);
+                    byteB.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property byteC = new L2Property(properties.get(6), up);
+                    byteC.putAt(0, objBuffer.readUnsignedByte());
+                    L2Property byteD = new L2Property(properties.get(7), up);
+                    byteD.putAt(0, objBuffer.readUnsignedByte());
+                    return Arrays.asList(type, heat, x, y, byteA, byteB, byteC, byteD);
+                }
+                default:
+                    throw new UnsupportedOperationException("Not implemented"); //TODO
             }
-            case "Core.Object.Rotator": {
-                L2Property pitch = new L2Property(properties.get(0), up);
-                pitch.putAt(0, objBuffer.readInt());
-                L2Property yaw = new L2Property(properties.get(1), up);
-                yaw.putAt(0, objBuffer.readInt());
-                L2Property roll = new L2Property(properties.get(2), up);
-                roll.putAt(0, objBuffer.readInt());
-                return Arrays.asList(pitch, yaw, roll);
-            }
-            case "Core.Object.Color": {
-                L2Property b = new L2Property(properties.get(0), up);
-                b.putAt(0, objBuffer.readUnsignedByte());
-                L2Property g = new L2Property(properties.get(1), up);
-                g.putAt(0, objBuffer.readUnsignedByte());
-                L2Property r = new L2Property(properties.get(2), up);
-                r.putAt(0, objBuffer.readUnsignedByte());
-                L2Property a = new L2Property(properties.get(3), up);
-                a.putAt(0, objBuffer.readUnsignedByte());
-                return Arrays.asList(b, g, r, a);
-            }
-            case "Fire.FireTexture.Spark": {
-                L2Property type = new L2Property(properties.get(0), up);
-                type.putAt(0, objBuffer.readUnsignedByte());
-                L2Property heat = new L2Property(properties.get(1), up);
-                heat.putAt(0, objBuffer.readUnsignedByte());
-                L2Property x = new L2Property(properties.get(2), up);
-                x.putAt(0, objBuffer.readUnsignedByte());
-                L2Property y = new L2Property(properties.get(3), up);
-                y.putAt(0, objBuffer.readUnsignedByte());
-                L2Property byteA = new L2Property(properties.get(0), up);
-                byteA.putAt(0, objBuffer.readUnsignedByte());
-                L2Property byteB = new L2Property(properties.get(1), up);
-                byteB.putAt(0, objBuffer.readUnsignedByte());
-                L2Property byteC = new L2Property(properties.get(2), up);
-                byteC.putAt(0, objBuffer.readUnsignedByte());
-                L2Property byteD = new L2Property(properties.get(3), up);
-                byteD.putAt(0, objBuffer.readUnsignedByte());
-                return Arrays.asList(type, heat, x, y, byteA, byteB, byteC, byteD);
-            }
-            default:
-                throw new UnsupportedOperationException("Not implemented"); //TODO
+        } catch (IOException e) {
+            throw new UnrealException(e);
         }
     }
 
     @Override
-    public void writeProperties(DataOutput buffer, UnrealPackageReadOnly up, List<L2Property> list) throws IOException {
-        for (L2Property property : list) {
-            Property template = property.getTemplate();
+    public void writeProperties(DataOutput buffer, List<L2Property> list, UnrealPackageReadOnly up) throws UnrealException {
+        try {
+            for (L2Property property : list) {
+                Property template = property.getTemplate();
 
-            for (int i = 0; i < property.getSize(); i++) {
-                Object obj = property.getAt(i);
-                if (obj == null)
-                    continue;
+                for (int i = 0; i < property.getSize(); i++) {
+                    Object obj = property.getAt(i);
+                    if (obj == null)
+                        continue;
 
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                DataOutput objBuffer = new DataOutputStream(baos, buffer.getCharset());
-                AtomicBoolean array = new AtomicBoolean(i > 0);
-                AtomicReference<String> structName = new AtomicReference<>();
-                AtomicReference<Type> type = new AtomicReference<>(Type.valueOf(template.getClass().getSimpleName().replace("Property", "").toUpperCase()));
-                write(objBuffer, template, obj, array, structName, type, up);
-                byte[] bytes = baos.toByteArray();
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    DataOutput objBuffer = new DataOutputStream(baos, buffer.getCharset());
+                    AtomicBoolean array = new AtomicBoolean(i > 0);
+                    AtomicReference<String> structName = new AtomicReference<>();
+                    AtomicReference<Type> type = new AtomicReference<>(Type.valueOf(template.getClass().getSimpleName().replace("Property", "").toUpperCase()));
+                    write(objBuffer, template, obj, array, structName, type, up);
+                    byte[] bytes = baos.toByteArray();
 
-                int size = getPropertySize(bytes.length);
-                int info = (array.get() ? 1 << 7 : 0) | (size << 4) | type.get().ordinal();
+                    int size = getPropertySize(bytes.length);
+                    int info = (array.get() ? 1 << 7 : 0) | (size << 4) | type.get().ordinal();
 
-                buffer.writeCompactInt(up.nameReference(template.getEntry().getObjectName().getName()));
-                buffer.writeByte(info);
-                if (type.get() == Type.STRUCT)
-                    buffer.writeCompactInt(up.nameReference(structName.get()));
-                switch (size) {
-                    case 5:
-                        buffer.writeByte(bytes.length);
-                        break;
-                    case 6:
-                        buffer.writeShort(bytes.length);
-                        break;
-                    case 7:
-                        buffer.writeInt(bytes.length);
-                        break;
+                    buffer.writeCompactInt(up.nameReference(template.getEntry().getObjectName().getName()));
+                    buffer.writeByte(info);
+                    if (type.get() == Type.STRUCT)
+                        buffer.writeCompactInt(up.nameReference(structName.get()));
+                    switch (size) {
+                        case 5:
+                            buffer.writeByte(bytes.length);
+                            break;
+                        case 6:
+                            buffer.writeShort(bytes.length);
+                            break;
+                        case 7:
+                            buffer.writeInt(bytes.length);
+                            break;
+                    }
+                    if (i > 0)
+                        buffer.writeByte(i);
+                    buffer.write(bytes);
                 }
-                if (i > 0)
-                    buffer.writeByte(i);
-                buffer.write(bytes);
             }
+            buffer.writeCompactInt(up.nameReference("None"));
+        } catch (IOException e) {
+            throw new UnrealException(e);
         }
-        buffer.writeCompactInt(up.nameReference("None"));
     }
 
     private void write(DataOutput objBuffer, Property template, Object obj, AtomicBoolean array, AtomicReference<String> structName, AtomicReference<Type> type, UnrealPackageReadOnly up) throws IOException {
@@ -368,40 +381,44 @@ public class PropertiesUtilImpl implements PropertiesUtil {
     private void writeStruct(DataOutput objBuffer, String structName, UnrealPackageReadOnly up, List<L2Property> struct) throws IOException {
         switch (structName) {
             case "Color":
-                writeStructBin(objBuffer, "Core.Object.Color", up, struct);
+                writeStructBin(objBuffer, struct, "Core.Object.Color", up);
                 break;
             case "Vector":
-                writeStructBin(objBuffer, "Core.Object.Vector", up, struct);
+                writeStructBin(objBuffer, struct, "Core.Object.Vector", up);
                 break;
             case "Rotator":
-                writeStructBin(objBuffer, "Core.Object.Rotator", up, struct);
+                writeStructBin(objBuffer, struct, "Core.Object.Rotator", up);
                 break;
             default:
-                writeProperties(objBuffer, up, struct);
+                writeProperties(objBuffer, struct, up);
         }
     }
 
     @Override
-    public void writeStructBin(DataOutput objBuffer, String structName, UnrealPackageReadOnly up, List<L2Property> struct) throws IOException {
-        switch (structName) {
-            case "Core.Object.Color":
-                for (int i = 0; i < 4; i++)
-                    objBuffer.writeByte((Integer) struct.get(i).getAt(0));
-                break;
-            case "Core.Object.Vector":
-                for (int i = 0; i < 3; i++)
-                    objBuffer.writeFloat((Float) struct.get(i).getAt(0));
-                break;
-            case "Core.Object.Rotator":
-                for (int i = 0; i < 3; i++)
-                    objBuffer.writeInt((Integer) struct.get(i).getAt(0));
-                break;
-            case "Fire.FireTexture.Spark":
-                for (int i = 0; i < 8; i++)
-                    objBuffer.writeByte((Integer) struct.get(i).getAt(0));
-                break;
-            default:
-                throw new UnsupportedOperationException("not implemented"); //TODO
+    public void writeStructBin(DataOutput objBuffer, List<L2Property> struct, String structName, UnrealPackageReadOnly up) throws UnrealException {
+        try {
+            switch (structName) {
+                case "Core.Object.Color":
+                    for (int i = 0; i < 4; i++)
+                        objBuffer.writeByte((Integer) struct.get(i).getAt(0));
+                    break;
+                case "Core.Object.Vector":
+                    for (int i = 0; i < 3; i++)
+                        objBuffer.writeFloat((Float) struct.get(i).getAt(0));
+                    break;
+                case "Core.Object.Rotator":
+                    for (int i = 0; i < 3; i++)
+                        objBuffer.writeInt((Integer) struct.get(i).getAt(0));
+                    break;
+                case "Fire.FireTexture.Spark":
+                    for (int i = 0; i < 8; i++)
+                        objBuffer.writeByte((Integer) struct.get(i).getAt(0));
+                    break;
+                default:
+                    throw new UnsupportedOperationException("not implemented"); //TODO
+            }
+        } catch (IOException e) {
+            throw new UnrealException(e);
         }
     }
 

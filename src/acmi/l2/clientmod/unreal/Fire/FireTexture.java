@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Fire;
+package acmi.l2.clientmod.unreal.fire;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
@@ -47,7 +47,7 @@ public class FireTexture extends FractalTexture {
 
         output.writeCompactInt(sparks.length);
         for (List<L2Property> spark : sparks)
-            propertiesUtil.writeStructBin(output, "Fire.FireTexture.Spark", getEntry().getUnrealPackage(), spark);
+            propertiesUtil.writeStructBin(output, spark, "Fire.FireTexture.Spark", getEntry().getUnrealPackage());
     }
 
     public List<L2Property>[] getSparks() {

@@ -22,10 +22,12 @@
 package acmi.l2.clientmod.unreal.objectfactory;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Core.Object;
+import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.core.Object;
 
-import java.io.IOException;
+import java.util.function.Function;
 
-public interface ObjectFactory {
-    Object readObject(UnrealPackageReadOnly.ExportEntry entry) throws IOException;
+public interface ObjectFactory extends Function<UnrealPackageReadOnly.ExportEntry, Object> {
+    @Override
+    Object apply(UnrealPackageReadOnly.ExportEntry exportEntry) throws UnrealException;
 }

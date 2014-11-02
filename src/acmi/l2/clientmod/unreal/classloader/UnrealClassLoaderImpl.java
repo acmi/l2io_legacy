@@ -24,10 +24,9 @@ package acmi.l2.clientmod.unreal.classloader;
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataInputStream;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Core.Field;
-import acmi.l2.clientmod.unreal.Core.Function;
-import acmi.l2.clientmod.unreal.Core.State;
-import acmi.l2.clientmod.unreal.Core.Struct;
+import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.core.Class;
+import acmi.l2.clientmod.unreal.core.*;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtilImpl;
 
@@ -35,7 +34,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,9 +64,12 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
     }
 
     @Override
-    public Struct getStruct(String structName) throws ClassLoadException {
+    public Struct getStruct(String structName) throws UnrealException {
         if (!structCache.containsKey(structName)) {
             Struct struct = null;
+
+            if (struct == null)
+                throw new UnrealException("Not implemented");
 
             structCache.put(structName, struct);
         }
@@ -76,21 +77,17 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
     }
 
     @Override
-    public List<Field> getStructFields(String structName) throws ClassLoadException {
+    public List<Field> getStructFields(String structName) throws UnrealException {
         if (!structFieldsCache.containsKey(structName)) {
             List<Field> structFields = null;
+
+            if (structFields == null)
+                throw new UnrealException("Not implemented");
 
             structFieldsCache.put(structName, structFields);
         }
         return structFieldsCache.get(structName);
     }
-
-    private void load(String name) {
-        List<Struct> list = new ArrayList<>();
-
-
-    }
-
 
     private Struct loadStruct(String name) throws IOException {
         UnrealPackageReadOnly.ExportEntry entry = getExportEntry(name);
@@ -98,9 +95,10 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
         Struct struct;
         switch (entry.getObjectClass() != null ? entry.getObjectClass().getObjectFullName() : "null") {
             case "Core.Function":
-                struct = new Function(buffer, entry, propertiesUtil);
-                if (Function.Flag.getFlags(((Function) struct).functionFlags).contains(Function.Flag.NATIVE))
-                    nativeFunctions.put(((Function) struct).nativeIndex, (Function) struct);
+                Function function = new Function(buffer, entry, propertiesUtil);
+                if (Function.Flag.getFlags(function.functionFlags).contains(Function.Flag.NATIVE))
+                    nativeFunctions.put(function.nativeIndex, function);
+                struct = function;
                 break;
             case "Core.Struct":
                 struct = new Struct(buffer, entry, propertiesUtil);
@@ -109,14 +107,14 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
                 struct = new State(buffer, entry, propertiesUtil);
                 break;
             default:
-                struct = new acmi.l2.clientmod.unreal.Core.Class(buffer, entry, propertiesUtil);
+                struct = new Class(buffer, entry, propertiesUtil);
                 break;
         }
         return struct;
     }
 
     @Override
-    public Function getNativeFunction(int index) throws ClassLoadException {
+    public Function getNativeFunction(int index) throws UnrealException {
         return nativeFunctions.get(index);
     }
 }

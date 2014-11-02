@@ -23,12 +23,12 @@ package acmi.l2.clientmod.utxconv;
 
 import acmi.l2.clientmod.io.RandomAccessFile;
 import acmi.l2.clientmod.io.UnrealPackageFile;
-import acmi.l2.clientmod.unreal.Core.Package;
-import acmi.l2.clientmod.unreal.Engine.Font;
-import acmi.l2.clientmod.unreal.Engine.Material;
-import acmi.l2.clientmod.unreal.Engine.Palette;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoaderImpl;
+import acmi.l2.clientmod.unreal.core.Package;
+import acmi.l2.clientmod.unreal.engine.Font;
+import acmi.l2.clientmod.unreal.engine.Material;
+import acmi.l2.clientmod.unreal.engine.Palette;
 import acmi.l2.clientmod.unreal.objectfactory.DefalutObjectFactory;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
@@ -95,7 +95,7 @@ public class ConvertTool {
             for (int i = 0; i < up.getExportTable().size(); i++) {
                 exportOffsets[i] = dest.getPosition();
                 UnrealPackageFile.ExportEntry exportEntry = up.getExportTable().get(i);
-                acmi.l2.clientmod.unreal.Core.Object object = objectFactory.readObject(exportEntry);
+                acmi.l2.clientmod.unreal.core.Object object = objectFactory.apply(exportEntry);
                 if (!(object instanceof Package) &&
                         !(object instanceof Material) &&
                         !(object instanceof Palette) &&

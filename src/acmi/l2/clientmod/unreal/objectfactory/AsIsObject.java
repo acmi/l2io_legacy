@@ -27,7 +27,7 @@ import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;
 
-public class AsIsObject extends acmi.l2.clientmod.unreal.Core.Object {
+public class AsIsObject extends acmi.l2.clientmod.unreal.core.Object {
     private byte[] body;
 
     public AsIsObject(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {
@@ -39,5 +39,9 @@ public class AsIsObject extends acmi.l2.clientmod.unreal.Core.Object {
 
     public byte[] getBody() {
         return body;
+    }
+
+    public boolean isEmptyBody() {
+        return body.length == 0;
     }
 }

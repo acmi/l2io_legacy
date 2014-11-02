@@ -19,11 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.Fire;
+package acmi.l2.clientmod.unreal.fire;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.Engine.Texture;
+import acmi.l2.clientmod.unreal.engine.Texture;
 import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;

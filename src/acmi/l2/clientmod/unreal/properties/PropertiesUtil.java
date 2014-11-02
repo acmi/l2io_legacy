@@ -24,6 +24,7 @@ package acmi.l2.clientmod.unreal.properties;
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 
 import java.io.IOException;
 import java.util.List;
@@ -44,6 +45,8 @@ import java.util.List;
  * }
  */
 public interface PropertiesUtil {
+    UnrealClassLoader getUnrealClassLoader();
+
     List<L2Property> readProperties(DataInput dataInput, UnrealPackageReadOnly up, String objClass) throws IOException;
 
     List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws IOException;

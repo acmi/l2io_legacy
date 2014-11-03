@@ -27,20 +27,15 @@ import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.Class;
 import acmi.l2.clientmod.unreal.core.*;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtilImpl;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class UnrealClassLoaderImpl implements UnrealClassLoader {
-    private final File systemFolder;
-    private final Charset charset;
+    private final PackageLoader packageLoader;
     private final PropertiesUtil propertiesUtil;
 
     private final Map<String, Struct> structCache = new HashMap<>();
@@ -48,10 +43,9 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
 
     private final Map<Integer, Function> nativeFunctions = new HashMap<>();
 
-    public UnrealClassLoaderImpl(String l2SystemFolder) {
-        this.systemFolder = new File(l2SystemFolder);
+    UnrealClassLoaderImpl(PackageLoader packageLoader) {
+        this.packageLoader = packageLoader;
         this.propertiesUtil = new PropertiesUtilImpl(this);
-        this.charset = Charset.forName(System.getProperty(String.format("%s.charset", UnrealClassLoader.class.getName()), "EUC-KR"));
     }
 
     @Override
@@ -59,8 +53,14 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
         return propertiesUtil;
     }
 
-    private UnrealPackageReadOnly.ExportEntry getExportEntry(String name) {
-        return null;
+    private UnrealPackageReadOnly.ExportEntry getExportEntry(String name) throws UnrealException {
+        String[] path = name.split("\\.", 2);
+        return packageLoader.apply(path[0])
+                .getExportTable()
+                .stream()
+                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name))
+                .findAny()
+                .orElseThrow(() -> new UnrealException(String.format("Entry %s not found.", name)));
     }
 
     @Override
@@ -91,7 +91,7 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
 
     private Struct loadStruct(String name) throws IOException {
         UnrealPackageReadOnly.ExportEntry entry = getExportEntry(name);
-        DataInput buffer = new DataInputStream(new ByteArrayInputStream(entry.getObjectRawDataExternally()), entry.getOffset(), charset);
+        DataInput buffer = new DataInputStream(new ByteArrayInputStream(entry.getObjectRawDataExternally()), entry.getOffset(), entry.getUnrealPackage().getCharset());
         Struct struct;
         switch (entry.getObjectClass() != null ? entry.getObjectClass().getObjectFullName() : "null") {
             case "Core.Function":

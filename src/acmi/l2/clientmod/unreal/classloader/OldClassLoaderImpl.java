@@ -28,9 +28,6 @@ import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.Class;
 import acmi.l2.clientmod.unreal.core.*;
-import acmi.l2.clientmod.unreal.properties.L2Property;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtilImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

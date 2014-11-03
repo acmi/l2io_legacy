@@ -85,6 +85,8 @@ public interface UnrealPackageReadOnly {
     }
 
     public interface ImportEntry extends Entry {
+        UnrealPackageReadOnly getUnrealPackage();
+
         NameEntry getClassPackage();
 
         NameEntry getClassName();

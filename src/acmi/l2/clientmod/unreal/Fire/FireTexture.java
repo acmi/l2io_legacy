@@ -24,8 +24,8 @@ package acmi.l2.clientmod.unreal.fire;
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.properties.L2Property;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
+import acmi.l2.clientmod.unreal.classloader.L2Property;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 
 import java.io.IOException;
 import java.util.List;

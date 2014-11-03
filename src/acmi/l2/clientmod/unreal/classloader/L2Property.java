@@ -19,16 +19,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.core;
+package acmi.l2.clientmod.unreal.classloader;
 
-import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
+import acmi.l2.clientmod.unreal.core.Property;
 
-import java.io.IOException;
+import java.util.Arrays;
 
-public class IntProperty extends Property {
-    public IntProperty(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {
-        super(input, entry, propertiesUtil);
+public final class L2Property {
+    private final Property template;
+    private final Object[] value;
+    private final UnrealPackageReadOnly up;
+
+    public L2Property(Property template, UnrealPackageReadOnly up) {
+        this.template = template;
+        this.value = new Object[template.arrayDimension];
+        this.up = up;
+    }
+
+    public String getName() {
+        return template.getEntry().getObjectName().getName();
+    }
+
+    public Property getTemplate() {
+        return template;
+    }
+
+    public UnrealPackageReadOnly getUnrealPackage() {
+        return up;
+    }
+
+    public int getSize() {
+        return value.length;
+    }
+
+    public Object getAt(int index) {
+        return value[index];
+    }
+
+    public void putAt(int index, Object value) {
+        this.value[index] = value;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + template.getCategory() + "]" + template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
     }
 }

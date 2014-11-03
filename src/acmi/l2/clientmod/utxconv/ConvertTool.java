@@ -23,14 +23,14 @@ package acmi.l2.clientmod.utxconv;
 
 import acmi.l2.clientmod.io.RandomAccessFile;
 import acmi.l2.clientmod.io.UnrealPackageFile;
+import acmi.l2.clientmod.unreal.classloader.FolderPackageLoader;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoaderImpl;
 import acmi.l2.clientmod.unreal.core.Package;
 import acmi.l2.clientmod.unreal.engine.Font;
 import acmi.l2.clientmod.unreal.engine.Material;
 import acmi.l2.clientmod.unreal.engine.Palette;
-import acmi.l2.clientmod.unreal.objectfactory.DefalutObjectFactory;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
+import acmi.l2.clientmod.unreal.objectfactory.ObjectFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +48,7 @@ public class ConvertTool {
     }
 
     public static void save(UnrealPackageFile up, File savePath, PrintStream log, UnrealClassLoader classLoader) throws IOException {
-        DefalutObjectFactory objectFactory = new DefalutObjectFactory(classLoader);
+        ObjectFactory objectFactory = ObjectFactory.getInstance(classLoader);
         PropertiesUtil propertiesUtil = classLoader.getPropertiesUtil();
 
         if (log == null)
@@ -151,7 +151,7 @@ public class ConvertTool {
         }
 
         try (UnrealPackageFile up = new UnrealPackageFile(args[1], true)) {
-            save(up, new File(args[2]), new UnrealClassLoaderImpl(args[0]));
+            save(up, new File(args[2]), UnrealClassLoader.getInstance(new FolderPackageLoader(args[0])));
         } catch (IOException e) {
             System.err.print(e.getClass());
             if (e.getMessage() != null)

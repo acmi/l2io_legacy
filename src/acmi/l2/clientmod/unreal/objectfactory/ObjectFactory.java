@@ -23,11 +23,16 @@ package acmi.l2.clientmod.unreal.objectfactory;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 import acmi.l2.clientmod.unreal.core.Object;
 
 import java.util.function.Function;
 
 public interface ObjectFactory extends Function<UnrealPackageReadOnly.ExportEntry, Object> {
+    static ObjectFactory getInstance(UnrealClassLoader classLoader) {
+        return new DefalutObjectFactory(classLoader);
+    }
+
     @Override
     Object apply(UnrealPackageReadOnly.ExportEntry exportEntry) throws UnrealException;
 }

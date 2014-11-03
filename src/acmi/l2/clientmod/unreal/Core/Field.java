@@ -23,7 +23,7 @@ package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 
 import java.io.IOException;
 

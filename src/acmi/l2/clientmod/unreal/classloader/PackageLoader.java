@@ -19,16 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.core;
+package acmi.l2.clientmod.unreal.classloader;
 
-import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
+import acmi.l2.clientmod.unreal.UnrealException;
 
-import java.io.IOException;
+import java.util.function.Function;
 
-public class IntProperty extends Property {
-    public IntProperty(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {
-        super(input, entry, propertiesUtil);
-    }
+public interface PackageLoader extends Function<String, UnrealPackageReadOnly> {
+    @Override
+    UnrealPackageReadOnly apply(String s) throws UnrealException;
 }

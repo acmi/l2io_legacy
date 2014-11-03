@@ -23,8 +23,8 @@ package acmi.l2.clientmod.unreal.fire;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 import acmi.l2.clientmod.unreal.engine.Texture;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.IOException;
 

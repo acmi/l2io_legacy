@@ -25,12 +25,15 @@ import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.Field;
 import acmi.l2.clientmod.unreal.core.Function;
 import acmi.l2.clientmod.unreal.core.Struct;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface UnrealClassLoader {
+    static UnrealClassLoader getInstance(PackageLoader packageLoader) {
+        return new UnrealClassLoaderImpl(packageLoader);
+    }
+
     PropertiesUtil getPropertiesUtil();
 
     Struct getStruct(String structName) throws UnrealException;

@@ -26,9 +26,9 @@ import acmi.l2.clientmod.io.DataInputStream;
 import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 import acmi.l2.clientmod.unreal.core.Object;
-import acmi.l2.clientmod.unreal.properties.PropertiesUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class DefalutObjectFactory implements ObjectFactory {
 
     private final UnrealClassLoader classLoader;
 
-    public DefalutObjectFactory(UnrealClassLoader classLoader) {
+    DefalutObjectFactory(UnrealClassLoader classLoader) {
         this.classLoader = classLoader;
     }
 

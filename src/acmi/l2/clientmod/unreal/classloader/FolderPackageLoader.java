@@ -19,16 +19,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.core;
+package acmi.l2.clientmod.unreal.classloader;
 
-import acmi.l2.clientmod.io.DataInput;
+import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
+import acmi.l2.clientmod.unreal.UnrealException;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
-public class IntProperty extends Property {
-    public IntProperty(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {
-        super(input, entry, propertiesUtil);
+public final class FolderPackageLoader implements PackageLoader {
+    private final File folder;
+    private final Charset charset;
+
+    private final Map<String, UnrealPackageReadOnly> uPackages = new HashMap<>();
+
+    public FolderPackageLoader(File folder) {
+        this.folder = folder;
+        this.charset = Charset.forName(System.getProperty("unreal.charset", "EUC-KR"));
+    }
+
+    public FolderPackageLoader(String folder) {
+        this(new File(folder));
+    }
+
+    @Override
+    public UnrealPackageReadOnly apply(String name) throws UnrealException {
+        if (!uPackages.containsKey(name)) {
+            try (UnrealPackageFile up = new UnrealPackageFile(new File(folder, name + ".u"), true, charset)) {
+                uPackages.put(name, up);
+            } catch (IOException e) {
+                throw new UnrealException(String.format("Couldn't load package %s.", name), e);
+            }
+        }
+        return uPackages.get(name);
     }
 }

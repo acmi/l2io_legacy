@@ -22,25 +22,10 @@
 package acmi.l2.clientmod.unreal.bytecode;
 
 import acmi.l2.clientmod.unreal.UnrealException;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 
-import java.util.Collection;
+import java.util.function.Function;
 
-import static acmi.l2.clientmod.unreal.core.Function.Flag.*;
-
-public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
-    private UnrealClassLoader classLoader;
-
-    public NativeFunctionsFromClassLoader(UnrealClassLoader classLoader) {
-        this.classLoader = classLoader;
-    }
-
+public interface NativeFunctionsSupplier extends Function<Integer, NativeFunction> {
     @Override
-    public NativeFunction apply(Integer integer) throws UnrealException {
-        return classLoader.getNativeFunctionQuetly(integer)
-                .map(function -> {
-                    Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
-                    return new NativeFunction(function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
-                }).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
-    }
+    NativeFunction apply(Integer integer) throws UnrealException;
 }

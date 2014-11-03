@@ -21,11 +21,13 @@
  */
 package acmi.l2.clientmod.unreal.bytecode;
 
+import acmi.l2.clientmod.unreal.UnrealException;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Optional;
 
-public class NativeFunctionsHardcode implements Function<Integer, NativeFunction> {
+public class NativeFunctionsHardcode implements NativeFunctionsSupplier {
     private static final Map<Integer, NativeFunction> NATIVE_FUNCTIONS = new HashMap<>();
 
     static {
@@ -270,7 +272,7 @@ public class NativeFunctionsHardcode implements Function<Integer, NativeFunction
     }
 
     @Override
-    public NativeFunction apply(Integer integer) {
-        return NATIVE_FUNCTIONS.get(integer);
+    public NativeFunction apply(Integer integer) throws UnrealException {
+        return Optional.ofNullable(NATIVE_FUNCTIONS.get(integer)).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
     }
 }

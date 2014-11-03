@@ -31,18 +31,18 @@ import java.util.function.Function;
 public class BytecodeReader implements Iterator<BytecodeToken> {
     private DataInput input;
     private UnrealPackageReadOnly unrealPackage;
-    private Function<Integer, NativeFunction> naviveFunctionSupplier;
+    private NativeFunctionsSupplier nativeFunctionsSupplier;
 
     private int scriptSize;
     private int readSize;
 
     private boolean next_is_not_delegate;
 
-    public BytecodeReader(DataInput input, int scriptSize, UnrealPackageReadOnly unrealPackage, Function<Integer, NativeFunction> naviveFunctionSupplier) {
+    public BytecodeReader(DataInput input, int scriptSize, UnrealPackageReadOnly unrealPackage, NativeFunctionsSupplier nativeFunctionsSupplier) {
         this.input = input;
         this.scriptSize = scriptSize;
         this.unrealPackage = unrealPackage;
-        this.naviveFunctionSupplier = naviveFunctionSupplier;
+        this.nativeFunctionsSupplier = nativeFunctionsSupplier;
     }
 
     @Override
@@ -333,7 +333,7 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
         if (nativeIndex < EX_FirstNative)
             throw new IllegalStateException("Invalid native index " + nativeIndex);
 
-        NativeFunction nativeFunction = naviveFunctionSupplier.apply(nativeIndex);
+        NativeFunction nativeFunction = nativeFunctionsSupplier.apply(nativeIndex);
         if (nativeFunction.isPreOperator() ||
                 (nativeFunction.isOperator() && nativeFunction.getOperatorPrecedence() == 0)) {
             BytecodeToken p = next();

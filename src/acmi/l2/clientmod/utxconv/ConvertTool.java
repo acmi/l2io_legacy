@@ -151,7 +151,7 @@ public class ConvertTool {
         }
 
         try (UnrealPackageFile up = new UnrealPackageFile(args[1], true)) {
-            save(up, new File(args[2]), UnrealClassLoader.getInstance(new FolderPackageLoader(args[0])));
+            save(up, new File(args[2]), new UnrealClassLoader(new FolderPackageLoader(args[0])));
         } catch (IOException e) {
             System.err.print(e.getClass());
             if (e.getMessage() != null)

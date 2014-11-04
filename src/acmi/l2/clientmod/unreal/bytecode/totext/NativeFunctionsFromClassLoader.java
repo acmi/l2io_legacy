@@ -23,6 +23,7 @@ package acmi.l2.clientmod.unreal.bytecode.totext;
 
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.unreal.core.Function;
 
 import java.util.Collection;
 
@@ -37,10 +38,8 @@ public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
 
     @Override
     public NativeFunction apply(Integer integer) throws UnrealException {
-        return classLoader.getNativeFunctionQuetly(integer)
-                .map(function -> {
-                    Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
-                    return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
-                }).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
+        Function function = classLoader.getNativeFunction(integer);
+        Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
+        return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
     }
 }

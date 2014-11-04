@@ -21,26 +21,26 @@
  */
 package acmi.l2.clientmod.unreal.bytecode;
 
-import acmi.l2.clientmod.unreal.UnrealException;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.io.DataInput;
+import acmi.l2.clientmod.unreal.bytecode.token.EndFunctionParams;
+import acmi.l2.clientmod.unreal.bytecode.token.Token;
 
-import java.util.Collection;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import static acmi.l2.clientmod.unreal.core.Function.Flag.*;
+public interface BytecodeInput extends DataInput {
+    Token readToken() throws IOException;
 
-public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
-    private UnrealClassLoader classLoader;
-
-    public NativeFunctionsFromClassLoader(UnrealClassLoader classLoader) {
-        this.classLoader = classLoader;
-    }
-
-    @Override
-    public NativeFunction apply(Integer integer) throws UnrealException {
-        return classLoader.getNativeFunctionQuetly(integer)
-                .map(function -> {
-                    Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
-                    return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
-                }).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
+    default Token[] readFunctionParams() throws IOException {
+        List<Token> tokens = new ArrayList<>();
+        Token tmp;
+        do {
+            tmp = readToken();
+            if (tmp instanceof EndFunctionParams)
+                break;
+            tokens.add(tmp);
+        } while (true);
+        return tokens.toArray(new Token[tokens.size()]);
     }
 }

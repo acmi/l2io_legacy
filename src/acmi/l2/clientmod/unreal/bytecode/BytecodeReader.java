@@ -27,16 +27,17 @@ import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 public class BytecodeReader implements Iterator<BytecodeToken> {
+    private static final Logger log = Logger.getLogger(BytecodeReader.class.getName());
+
     private DataInput input;
     private UnrealPackageReadOnly unrealPackage;
     private NativeFunctionsSupplier nativeFunctionsSupplier;
 
     private int scriptSize;
     private int readSize;
-
-    private boolean next_is_not_delegate;
 
     public BytecodeReader(DataInput input, int scriptSize, UnrealPackageReadOnly unrealPackage, NativeFunctionsSupplier nativeFunctionsSupplier) {
         this.input = input;
@@ -47,6 +48,7 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
 
     @Override
     public boolean hasNext() {
+        System.err.println("hasNext ? " + readSize + "/" + scriptSize);
         return readSize < scriptSize;
     }
 
@@ -54,6 +56,11 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
     public BytecodeToken next() {
         try {
             int b = readUnsignedByte();
+            log.fine(() -> String.format("%d/%d", readSize, scriptSize));
+            if (readSize > scriptSize)
+                Thread.dumpStack();
+            if (b < EX_ExtendedNative)
+                log.fine(() -> String.format("Opcode: %02x %s", b, Opcode.values()[b]));
             switch (b) {
                 case EX_LocalVariable:
                 case EX_InstanceVariable:
@@ -193,8 +200,20 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
                     return readCall("Global." + readName());
                 case EX_RotatorToVector:
                 case EX_Unknown5B:
-                    next_is_not_delegate = true;
-                    return next();
+                    int b2 = readUnsignedByte();
+                    log.fine(() -> String.format("Second opcode: %02x", b2));
+                    switch (b2) {
+                        case EX_DelegateCall:
+                            readRef(e -> null);
+                            return readCall(readRef(e -> e.getObjectName().getName()).toString());
+                        case EX_DelegateName:
+                            readRef(e -> null);
+                            return readCall(readName());
+                        case EX_DelegateAssign:
+                            return new BytecodeToken(next() + " = " + next());
+                        default:
+                            throw new IllegalStateException(String.format("Unknown second token: %02x", b2));
+                    }
                 case EX_ByteToInt:
                 case EX_IntToByte:
                 case EX_ByteToFloat:
@@ -209,29 +228,12 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
                     return new BytecodeToken(next() + ".Remove(" + next() + ", " + next() + ")");
                 case EX_BoolToFloat:
                     return new BytecodeToken("float(" + next() + ")");
-                case EX_DelegateCall://EX_FloatToByte
-                    if (next_is_not_delegate) {
-                        return new BytecodeToken("byte(" + next() + ")");
-                    } else {
-                        next_is_not_delegate = false;
-                        readRef(e -> null);
-                        return readCall(readRef(e -> e.getObjectName().getName()).toString());
-                    }
-                case EX_DelegateName://EX_FloatToInt
-                    if (next_is_not_delegate) {
-                        return new BytecodeToken("int(" + next() + ")");
-                    } else {
-                        next_is_not_delegate = false;
-                        readRef(e -> null);
-                        return readCall(readName());
-                    }
-                case EX_DelegateAssign://EX_FloatToBool
-                    if (next_is_not_delegate) {
-                        return new BytecodeToken("bool(" + next() + ")");
-                    } else {
-                        next_is_not_delegate = false;
-                        return new BytecodeToken(next() + " = " + next());
-                    }
+                case EX_FloatToByte:
+                    return new BytecodeToken("byte(" + next() + ")");
+                case EX_FloatToInt:
+                    return new BytecodeToken("int(" + next() + ")");
+                case EX_FloatToBool:
+                    return new BytecodeToken("bool(" + next() + ")");
                 case EX_StringToName:
                     return new BytecodeToken(next() + ".Empty()");
                 case EX_ObjectToBool:
@@ -334,6 +336,7 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
             throw new IllegalStateException("Invalid native index " + nativeIndex);
 
         NativeFunction nativeFunction = nativeFunctionsSupplier.apply(nativeIndex);
+        log.fine(() -> String.format("Native: %03x %s preOperator:%b %d operator:%s", nativeIndex, nativeFunction.getName(), nativeFunction.isPreOperator(), nativeFunction.getOperatorPrecedence(), nativeFunction.isOperator()));
         if (nativeFunction.isPreOperator() ||
                 (nativeFunction.isOperator() && nativeFunction.getOperatorPrecedence() == 0)) {
             BytecodeToken p = next();
@@ -364,6 +367,110 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
             }
         } while (!(p instanceof BytecodeToken.EndParmsToken));
         return new BytecodeToken(builder.toString());
+    }
+
+    private enum Opcode {
+        LocalVariable,
+        InstanceVariable,
+        DefaultVariable,
+        UnknownVariable,
+        Return,
+        Switch,
+        Jump,
+        JumpIfNot,
+        Stop,
+        Assert,
+        Case,
+        Nothing,
+        LabelTable,
+        GotoLabel,
+        EatString,
+        Let,
+        DynArrayElement,
+        New,
+        ClassContext,
+        Metacast,
+        LetBool,
+        Unknown_jumpover,
+        EndFunctionParms,
+        Self,
+        Skip,
+        Context,
+        ArrayElement,
+        VirtualFunction,
+        FinalFunction,
+        IntConst,
+        FloatConst,
+        StringConst,
+        ObjectConst,
+        NameConst,
+        RotationConst,
+        VectorConst,
+        ByteConst,
+        IntZero,
+        IntOne,
+        True,
+        False,
+        NativeParm,
+        NoObject,
+        Unknown_jumpover2,
+        IntConstByte,
+        BoolVariable,
+        DynamicCast,
+        Iterator,
+        IteratorPop,
+        IteratorNext,
+        StructCmpEq,
+        StructCmpNe,
+        UnicodeStringConst,
+        Unknown35,
+        StructMember,
+        Length,
+        GlobalFunction,
+        RotatorToVector,
+        ByteToInt,
+        ByteToBool,
+        ByteToFloat,
+        IntToByte,
+        IntToBool,
+        IntToFloat,
+        BoolToByte,
+        BoolToInt,
+        BoolToFloat,
+        FloatToByte,
+        FloatToInt,
+        FloatToBool,
+        StringToName,
+        ObjectToBool,
+        NameToBool,
+        StringToByte,
+        StringToInt,
+        StringToBool,
+        StringToFloat,
+        StringToVector,
+        StringToRotator,
+        VectorToBool,
+        VectorToRotator,
+        RotatorToBool,
+        ByteToString,
+        IntToString,
+        BoolToString,
+        FloatToString,
+        ObjectToString,
+        NameToString,
+        VectorToString,
+        RotatorToString,
+        StringToName2,
+        Unknown5B,
+        Unknown5C,
+        Unknown5D,
+        Unknown5E,
+        Unknown5F;
+
+        @Override
+        public String toString() {
+            return "EX_" + name();
+        }
     }
 
     private static final int EX_LocalVariable = 0x00;
@@ -419,7 +526,7 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
     private static final int EX_StructCmpEq = 0x32;
     private static final int EX_StructCmpNe = 0x33;
     private static final int EX_UnicodeStringConst = 0x34;
-    // =0x35
+    private static final int EX_Unknown35 = 0x35;
     private static final int EX_StructMember = 0x36;
     private static final int EX_Length = 0x37; // UT2003
     private static final int EX_GlobalFunction = 0x38;
@@ -462,6 +569,10 @@ public class BytecodeReader implements Iterator<BytecodeToken> {
     private static final int EX_RotatorToString = 0x59;
     private static final int EX_StringToName2 = 0x5A; // a duplicated opcode found in XIII
     private static final int EX_Unknown5B = 0x5B; // unknown opcode used in Devastation, seems to be an invisible conversion
+    private static final int EX_Unknown5C = 0x5C;
+    private static final int EX_Unknown5D = 0x5D;
+    private static final int EX_Unknown5E = 0x5E;
+    private static final int EX_Unknown5F = 0x5F;
 
     private static final int EX_ExtendedNative = 0x60;
     private static final int EX_FirstNative = 0x70;

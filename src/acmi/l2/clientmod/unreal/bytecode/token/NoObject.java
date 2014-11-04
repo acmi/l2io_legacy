@@ -19,28 +19,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.unreal.UnrealException;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
-import java.util.Collection;
+import java.io.IOException;
 
-import static acmi.l2.clientmod.unreal.core.Function.Flag.*;
+public class NoObject extends Token {
+    public static final int OPCODE = 0x2a;
 
-public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
-    private UnrealClassLoader classLoader;
+    public NoObject(UnrealPackageReadOnly unrealPackage) {
+        super(unrealPackage);
+    }
 
-    public NativeFunctionsFromClassLoader(UnrealClassLoader classLoader) {
-        this.classLoader = classLoader;
+    public NoObject(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
+        super(unrealPackage, input);
     }
 
     @Override
-    public NativeFunction apply(Integer integer) throws UnrealException {
-        return classLoader.getNativeFunctionQuetly(integer)
-                .map(function -> {
-                    Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
-                    return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
-                }).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
+    protected int getOpcode() {
+        return OPCODE;
+    }
+
+    @Override
+    public String toString() {
+        return "None";
     }
 }

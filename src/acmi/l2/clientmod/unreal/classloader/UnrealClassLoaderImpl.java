@@ -30,11 +30,12 @@ import acmi.l2.clientmod.unreal.core.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.logging.Logger;
 
 public class UnrealClassLoaderImpl implements UnrealClassLoader {
+    private static final Logger log = Logger.getLogger(UnrealClassLoaderImpl.class.getName());
+
     private final PackageLoader packageLoader;
     private final PropertiesUtil propertiesUtil;
 
@@ -65,28 +66,63 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
 
     @Override
     public Struct getStruct(String structName) throws UnrealException {
-        if (!structCache.containsKey(structName)) {
-            Struct struct = null;
+        if (!structCache.containsKey(structName))
+            loadStructTree(structName);
 
-            if (struct == null)
-                throw new UnrealException("Not implemented");
-
-            structCache.put(structName, struct);
-        }
         return structCache.get(structName);
     }
 
     @Override
     public List<Field> getStructFields(String structName) throws UnrealException {
-        if (!structFieldsCache.containsKey(structName)) {
-            List<Field> structFields = null;
+        if (!structFieldsCache.containsKey(structName))
+            loadStructTree(structName);
 
-            if (structFields == null)
-                throw new UnrealException("Not implemented");
-
-            structFieldsCache.put(structName, structFields);
-        }
         return structFieldsCache.get(structName);
+    }
+
+    private void loadStructTree(String structName) throws UnrealException {
+        try {
+            List<Struct> list = new ArrayList<>();
+
+            Struct tmp = loadStruct(structName);
+            while (tmp != null) {
+                list.add(tmp);
+
+                UnrealPackageReadOnly.Entry superStruct = tmp.getEntry().getObjectSuperClass();
+                tmp = superStruct != null ? loadStruct(superStruct.getObjectFullName()) : null;
+            }
+
+            Collections.reverse(list);
+
+            log.info(() -> String.format("%s", list));
+
+            List<Field> fields = new ArrayList<>();
+            for (Struct struct : list) {
+                String name = struct.getEntry().getObjectFullName();
+
+                UnrealPackageReadOnly.ExportEntry childEntry = (UnrealPackageReadOnly.ExportEntry) struct.getChild();
+                while (childEntry != null) {
+                    Field field = loadField(childEntry);
+
+                    fields.add(field);
+
+                    childEntry = field.getNext();
+                }
+
+                if (!structFieldsCache.containsKey(name)) {
+                    structFieldsCache.put(name, Collections.unmodifiableList(new ArrayList<>(fields)));
+                }
+
+                if (!structCache.containsKey(name)) {
+                    if (struct instanceof Class)
+                        ((Class) struct).readProperties();
+
+                    structCache.put(name, struct);
+                }
+            }
+        } catch (Exception e) {
+            throw new UnrealException(e);
+        }
     }
 
     private Struct loadStruct(String name) throws IOException {
@@ -111,6 +147,16 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
                 break;
         }
         return struct;
+    }
+
+    private Field loadField(UnrealPackageReadOnly.ExportEntry entry) throws IOException, ReflectiveOperationException {
+        DataInput buffer = new DataInputStream(new ByteArrayInputStream(entry.getObjectRawDataExternally()), entry.getUnrealPackage().getCharset());
+
+        String fieldClassName = Field.class.getPackage().getName() + "." + entry.getObjectClass().getObjectName().getName();
+        java.lang.Class<? extends Field> fieldClass = java.lang.Class.forName(fieldClassName).asSubclass(Field.class);
+
+        return fieldClass.getConstructor(DataInput.class, UnrealPackageReadOnly.ExportEntry.class, PropertiesUtil.class)
+                .newInstance(buffer, entry, propertiesUtil);
     }
 
     @Override

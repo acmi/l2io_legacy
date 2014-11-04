@@ -19,40 +19,47 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
-public final class NativeFunction {
+import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+
+import java.io.IOException;
+
+public class Case extends Token {
+    public static final int OPCODE = 0x0a;
+
     private final int index;
-    private final String name;
-    private final boolean preOperator;
-    private final int operatorPrecedence;
-    private final boolean operator;
+    private final Token value;
 
-    public NativeFunction(int index, String name, boolean preOperator, int operatorPrecedence, boolean operator) {
+    public Case(UnrealPackageReadOnly unrealPackage, int index, Token value) {
+        super(unrealPackage);
         this.index = index;
-        this.name = name;
-        this.preOperator = preOperator;
-        this.operatorPrecedence = operatorPrecedence;
-        this.operator = operator;
+        this.value = value;
     }
 
-    public int getIndex() {
-        return index;
+    public Case(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
+        super(unrealPackage, input);
+        this.index = input.readUnsignedShort();
+        this.value = this.index != 0xffff ? input.readToken() : null;
     }
 
-    public String getName() {
-        return name;
+    @Override
+    protected int getOpcode() {
+        return OPCODE;
     }
 
-    public boolean isPreOperator() {
-        return preOperator;
+    @Override
+    public void writeTo(BytecodeOutput output) throws IOException {
+        super.writeTo(output);
+        output.writeShort(index);
+        if (index != 0xffff)
+            output.writeToken(value);
     }
 
-    public int getOperatorPrecedence() {
-        return operatorPrecedence;
-    }
-
-    public boolean isOperator() {
-        return operator;
+    @Override
+    public String toString() {
+        return index != 0xffff ? String.format("case %s:", value) : "default:";
     }
 }

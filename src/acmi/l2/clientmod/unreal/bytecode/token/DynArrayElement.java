@@ -19,40 +19,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
-public final class NativeFunction {
-    private final int index;
-    private final String name;
-    private final boolean preOperator;
-    private final int operatorPrecedence;
-    private final boolean operator;
+import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
-    public NativeFunction(int index, String name, boolean preOperator, int operatorPrecedence, boolean operator) {
+import java.io.IOException;
+
+public class DynArrayElement extends Token {
+    public static final int OPCODE = 0x10;
+
+    private final Token index;
+    private final Token array;
+
+    public DynArrayElement(UnrealPackageReadOnly unrealPackage, Token index, Token array) {
+        super(unrealPackage);
         this.index = index;
-        this.name = name;
-        this.preOperator = preOperator;
-        this.operatorPrecedence = operatorPrecedence;
-        this.operator = operator;
+        this.array = array;
     }
 
-    public int getIndex() {
-        return index;
+    public DynArrayElement(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
+        super(unrealPackage, input);
+        this.index = input.readToken();
+        this.array = input.readToken();
     }
 
-    public String getName() {
-        return name;
+    @Override
+    protected int getOpcode() {
+        return OPCODE;
     }
 
-    public boolean isPreOperator() {
-        return preOperator;
+    @Override
+    public void writeTo(BytecodeOutput output) throws IOException {
+        super.writeTo(output);
+        output.writeToken(index);
+        output.writeToken(array);
     }
 
-    public int getOperatorPrecedence() {
-        return operatorPrecedence;
-    }
-
-    public boolean isOperator() {
-        return operator;
+    @Override
+    public String toString() {
+        return String.format("%s[%s]", array, index);
     }
 }

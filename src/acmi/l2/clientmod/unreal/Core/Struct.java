@@ -23,11 +23,13 @@ package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.bytecode.BytecodeReader;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeUtilImpl;
 import acmi.l2.clientmod.unreal.bytecode.NativeFunctionsHardcode;
+import acmi.l2.clientmod.unreal.bytecode.token.Token;
 import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Struct extends Field {
     public final int scriptText;
@@ -36,6 +38,7 @@ public class Struct extends Field {
     public final int line;
     public final int textPos;
     public final int scriptSize;
+    private final List<Token> script;
 
     public Struct(DataInput input, UnrealPackageReadOnly.ExportEntry entry, PropertiesUtil propertiesUtil) throws IOException {
         super(input, entry, propertiesUtil);
@@ -47,14 +50,8 @@ public class Struct extends Field {
         line = input.readInt();
         textPos = input.readInt();
         scriptSize = input.readInt();
-        if (scriptSize != 0) {
-            //TODO code statements
-            BytecodeReader bytecodeReader = new BytecodeReader(input, scriptSize, entry.getUnrealPackage(), new NativeFunctionsHardcode());
-            System.out.println(entry);
-            while (bytecodeReader.hasNext()) {
-                System.out.println("\t" + bytecodeReader.next());
-            }
-        }
+        //System.err.println(entry.getObjectFullName());
+        script = new BytecodeUtilImpl(entry.getUnrealPackage(), new NativeFunctionsHardcode()).readTokens(input, scriptSize);
     }
 
     public UnrealPackageReadOnly.Entry getScritpText() {
@@ -67,6 +64,10 @@ public class Struct extends Field {
 
     public String getFriendlyName() {
         return getEntry().getUnrealPackage().getNameTable().get(friendlyName).getName();
+    }
+
+    public List<Token> getScript() {
+        return script;
     }
 
     @Override

@@ -19,50 +19,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.properties;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.core.Property;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
-import java.util.Arrays;
+import java.io.IOException;
 
-public class L2Property {
-    private Property template;
-    private Object[] value;
-    private UnrealPackageReadOnly up;
+public class Jump extends Token {
+    public static final int OPCODE = 0x06;
 
-    public L2Property(Property template, UnrealPackageReadOnly up) {
-        this.template = template;
-        this.value = new Object[template.arrayDimension];
-        this.up = up;
+    private final int targetOffset;
+
+    public Jump(UnrealPackageReadOnly unrealPackage, int targetOffset) {
+        super(unrealPackage);
+        this.targetOffset = targetOffset;
     }
 
-    public String getName() {
-        return template.getEntry().getObjectName().getName();
+    public Jump(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
+        super(unrealPackage, input);
+        this.targetOffset = input.readUnsignedShort();
     }
 
-    public Property getTemplate() {
-        return template;
+    @Override
+    protected int getOpcode() {
+        return OPCODE;
     }
 
-    public UnrealPackageReadOnly getUnrealPackage() {
-        return up;
-    }
-
-    public int getSize() {
-        return value.length;
-    }
-
-    public Object getAt(int index) {
-        return value[index];
-    }
-
-    public void putAt(int index, Object value) {
-        this.value[index] = value;
+    @Override
+    public void writeTo(BytecodeOutput output) throws IOException {
+        super.writeTo(output);
+        output.writeShort(targetOffset);
     }
 
     @Override
     public String toString() {
-        return "[" + template.getCategory() + "]" + template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
+        return String.format("goto %04x", targetOffset);
     }
 }

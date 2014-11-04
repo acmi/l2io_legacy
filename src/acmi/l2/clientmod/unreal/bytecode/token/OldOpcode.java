@@ -19,28 +19,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.unreal.UnrealException;
-import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
-import java.util.Collection;
+import java.io.IOException;
 
-import static acmi.l2.clientmod.unreal.core.Function.Flag.*;
+public class OldOpcode extends Token {
+    public static final int OPCODE = 0x39;
 
-public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
-    private UnrealClassLoader classLoader;
+    private Token wrappedToken;
 
-    public NativeFunctionsFromClassLoader(UnrealClassLoader classLoader) {
-        this.classLoader = classLoader;
+    public OldOpcode(UnrealPackageReadOnly unrealPackage, Token wrappedToken) {
+        super(unrealPackage);
+        this.wrappedToken = wrappedToken;
+    }
+
+    public OldOpcode(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
+        super(unrealPackage, input);
+        this.wrappedToken = input.readToken();
     }
 
     @Override
-    public NativeFunction apply(Integer integer) throws UnrealException {
-        return classLoader.getNativeFunctionQuetly(integer)
-                .map(function -> {
-                    Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
-                    return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
-                }).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
+    protected int getOpcode() {
+        return OPCODE;
+    }
+
+    public Token getWrappedToken() {
+        return wrappedToken;
+    }
+
+    @Override
+    public void writeTo(BytecodeOutput output) throws IOException {
+        super.writeTo(output);
+        wrappedToken.writeTo(output);
+    }
+
+    @Override
+    public String toString() {
+        return wrappedToken.toString();
     }
 }

@@ -32,9 +32,11 @@ public interface BytecodeOutput extends DataOutput {
         token.writeTo(this);
     }
 
+    int getNoneInd();
+
     default void writeFunctionParams(Token[] params) throws IOException {
         for (Token token : params)
             token.writeTo(this);
-        new EndFunctionParams(null).writeTo(this);
+        EndFunctionParams.INSTANCE.writeTo(this);
     }
 }

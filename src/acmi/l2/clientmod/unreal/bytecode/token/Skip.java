@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class Skip extends Token {
 
     private final int targetOffset;
 
-    public Skip(UnrealPackageReadOnly unrealPackage, int targetOffset) {
-        super(unrealPackage);
+    public Skip(int targetOffset) {
         this.targetOffset = targetOffset;
     }
 
-    public Skip(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.targetOffset = input.readUnsignedShort();
+    public static Skip readFrom(BytecodeInput input) throws IOException {
+        return new Skip(input.readUnsignedShort());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getTargetOffset() {
+        return targetOffset;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class Skip extends Token {
 
     @Override
     public String toString() {
-        return String.format("goto %04x", targetOffset);
+        return "Skip{" +
+                "targetOffset=" + targetOffset +
+                '}';
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -29,12 +28,13 @@ import java.io.IOException;
 public class NoObject extends Token {
     public static final int OPCODE = 0x2a;
 
-    public NoObject(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final NoObject INSTANCE = new NoObject();
+
+    private NoObject() {
     }
 
-    public NoObject(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static NoObject readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override
@@ -44,6 +44,6 @@ public class NoObject extends Token {
 
     @Override
     public String toString() {
-        return "None";
+        return "NoObject";
     }
 }

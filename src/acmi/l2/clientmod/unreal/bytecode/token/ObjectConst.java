@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -30,16 +29,14 @@ import java.io.IOException;
 public class ObjectConst extends Token {
     public static final int OPCODE = 0x20;
 
-    private final int ref;
+    private final int objRef;
 
-    public ObjectConst(UnrealPackageReadOnly unrealPackage, int ref) {
-        super(unrealPackage);
-        this.ref = ref;
+    public ObjectConst(int objRef) {
+        this.objRef = objRef;
     }
 
-    public ObjectConst(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.ref = input.readCompactInt();
+    public static ObjectConst readFrom(BytecodeInput input) throws IOException {
+        return new ObjectConst(input.readCompactInt());
     }
 
     @Override
@@ -47,18 +44,20 @@ public class ObjectConst extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.Entry getObject() {
-        return unrealPackage.objectReference(ref);
+    public int getObjRef() {
+        return objRef;
     }
 
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        output.writeCompactInt(ref);
+        output.writeCompactInt(objRef);
     }
 
     @Override
     public String toString() {
-        return getObject().getObjectName().getName();
+        return "ObjectConst{" +
+                "objRef=" + objRef +
+                '}';
     }
 }

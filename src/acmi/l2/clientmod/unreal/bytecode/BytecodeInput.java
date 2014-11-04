@@ -32,6 +32,8 @@ import java.util.List;
 public interface BytecodeInput extends DataInput {
     Token readToken() throws IOException;
 
+    int getNoneInd();
+
     default Token[] readFunctionParams() throws IOException {
         List<Token> tokens = new ArrayList<>();
         Token tmp;

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -30,19 +29,19 @@ import java.io.IOException;
 public class Case extends Token {
     public static final int OPCODE = 0x0a;
 
+    public static final int DEFAULT = 0xffff;
+
     private final int index;
     private final Token value;
 
-    public Case(UnrealPackageReadOnly unrealPackage, int index, Token value) {
-        super(unrealPackage);
+    public Case(int index, Token value) {
         this.index = index;
         this.value = value;
     }
 
-    public Case(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.index = input.readUnsignedShort();
-        this.value = this.index != 0xffff ? input.readToken() : null;
+    public static Case readFrom(BytecodeInput input) throws IOException {
+        int index = input.readUnsignedShort();
+        return new Case(index, index != DEFAULT ? input.readToken() : null);
     }
 
     @Override
@@ -50,16 +49,27 @@ public class Case extends Token {
         return OPCODE;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
+    public Token getValue() {
+        return value;
+    }
+
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
         output.writeShort(index);
-        if (index != 0xffff)
+        if (index != DEFAULT)
             output.writeToken(value);
     }
 
     @Override
     public String toString() {
-        return index != 0xffff ? String.format("case %s:", value) : "default:";
+        return "Case{" +
+                "index=" + index +
+                ", value=" + value +
+                '}';
     }
 }

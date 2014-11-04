@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -33,21 +32,26 @@ public class DynArrayElement extends Token {
     private final Token index;
     private final Token array;
 
-    public DynArrayElement(UnrealPackageReadOnly unrealPackage, Token index, Token array) {
-        super(unrealPackage);
+    public DynArrayElement(Token index, Token array) {
         this.index = index;
         this.array = array;
     }
 
-    public DynArrayElement(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.index = input.readToken();
-        this.array = input.readToken();
+    public static DynArrayElement readFrom(BytecodeInput input) throws IOException {
+        return new DynArrayElement(input.readToken(), input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getIndex() {
+        return index;
+    }
+
+    public Token getArray() {
+        return array;
     }
 
     @Override
@@ -59,6 +63,9 @@ public class DynArrayElement extends Token {
 
     @Override
     public String toString() {
-        return String.format("%s[%s]", array, index);
+        return "DynArrayElement{" +
+                "index=" + index +
+                ", array=" + array +
+                '}';
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -33,21 +32,26 @@ public class JumpIfNot extends Token {
     private final int targetOffset;
     private final Token condition;
 
-    public JumpIfNot(UnrealPackageReadOnly unrealPackage, int targetOffset, Token condition) {
-        super(unrealPackage);
+    public JumpIfNot(int targetOffset, Token condition) {
         this.targetOffset = targetOffset;
         this.condition = condition;
     }
 
-    public JumpIfNot(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        targetOffset = input.readUnsignedShort();
-        condition = input.readToken();
+    public static JumpIfNot readFrom(BytecodeInput input) throws IOException {
+        return new JumpIfNot(input.readUnsignedShort(), input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getTargetOffset() {
+        return targetOffset;
+    }
+
+    public Token getCondition() {
+        return condition;
     }
 
     @Override
@@ -59,6 +63,9 @@ public class JumpIfNot extends Token {
 
     @Override
     public String toString() {
-        return String.format("if (!%s) goto %04x", condition, targetOffset);
+        return "JumpIfNot{" +
+                "targetOffset=" + targetOffset +
+                ", condition=" + condition +
+                '}';
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -30,19 +29,16 @@ import java.io.IOException;
 public class DynamicCast extends Token {
     public static final int OPCODE = 0x2e;
 
-    private final int objRef;
+    private final int classRef;
     private final Token value;
 
-    public DynamicCast(UnrealPackageReadOnly unrealPackage, int objRef, Token value) {
-        super(unrealPackage);
-        this.objRef = objRef;
+    public DynamicCast(int classRef, Token value) {
+        this.classRef = classRef;
         this.value = value;
     }
 
-    public DynamicCast(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.objRef = input.readCompactInt();
-        this.value = input.readToken();
+    public static DynamicCast readFrom(BytecodeInput input) throws IOException {
+        return new DynamicCast(input.readCompactInt(), input.readToken());
     }
 
     @Override
@@ -50,19 +46,26 @@ public class DynamicCast extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.Entry getCl() {
-        return unrealPackage.objectReference(objRef);
+    public int getClassRef() {
+        return classRef;
+    }
+
+    public Token getValue() {
+        return value;
     }
 
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        output.writeCompactInt(objRef);
+        output.writeCompactInt(classRef);
         output.writeToken(value);
     }
 
     @Override
     public String toString() {
-        return String.format("%s(%s)", getCl().getObjectName().getName(), value);
+        return "DynamicCast{" +
+                "classRef=" + classRef +
+                ", value=" + value +
+                '}';
     }
 }

@@ -1,6 +1,5 @@
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -11,14 +10,12 @@ public class LocalVariable extends Token {
 
     private int objRef;
 
-    public LocalVariable(UnrealPackageReadOnly unrealPackage, int objRef) {
-        super(unrealPackage);
+    public LocalVariable(int objRef) {
         this.objRef = objRef;
     }
 
-    public LocalVariable(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.objRef = input.readCompactInt();
+    public static LocalVariable readFrom(BytecodeInput input) throws IOException {
+        return new LocalVariable(input.readCompactInt());
     }
 
     @Override
@@ -26,8 +23,8 @@ public class LocalVariable extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.Entry getVariable() {
-        return unrealPackage.objectReference(objRef);
+    public int getObjRef() {
+        return objRef;
     }
 
     @Override
@@ -38,6 +35,8 @@ public class LocalVariable extends Token {
 
     @Override
     public String toString() {
-        return getVariable().getObjectName().getName();
+        return "LocalVariable{" +
+                "objRef=" + objRef +
+                '}';
     }
 }

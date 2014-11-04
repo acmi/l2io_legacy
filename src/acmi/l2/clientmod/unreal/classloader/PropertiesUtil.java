@@ -54,7 +54,7 @@ public interface PropertiesUtil {
 
     void writeStructBin(DataOutput objBuffer, List<L2Property> struct, String structName, UnrealPackageReadOnly up) throws UnrealException;
 
-    public static L2Property getAt(List<L2Property> properties, String name) {
+    static L2Property getAt(List<L2Property> properties, String name) {
         return properties.stream()
                 .filter(p -> p.getName().equalsIgnoreCase((name)))
                 .findFirst()

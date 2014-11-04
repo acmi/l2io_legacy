@@ -56,15 +56,7 @@ public interface UnrealClassLoader {
         }
     }
 
-    default Field getField(String field) throws UnrealException {
-        int delimiterInd = field.lastIndexOf('.');
-        String struct = field.substring(0, delimiterInd);
-        String fieldName = field.substring(delimiterInd + 1);
-        return getStructFields(struct).stream()
-                .filter(f -> f.getEntry().getObjectName().getName().equalsIgnoreCase(fieldName))
-                .findAny()
-                .orElseThrow(() -> new UnrealException(String.format("Field %s not found", field)));
-    }
+    Field getField(String field) throws UnrealException;
 
     default Optional<Field> getFieldQuetly(String field) {
         try {

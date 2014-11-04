@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -33,16 +32,13 @@ public class Let extends Token {
     private final Token left;
     private final Token right;
 
-    public Let(UnrealPackageReadOnly unrealPackage, Token left, Token right) {
-        super(unrealPackage);
+    public Let(Token left, Token right) {
         this.left = left;
         this.right = right;
     }
 
-    public Let(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.left = input.readToken();
-        this.right = input.readToken();
+    public static Let readFrom(BytecodeInput input) throws IOException {
+        return new Let(input.readToken(), input.readToken());
     }
 
     @Override
@@ -61,12 +57,15 @@ public class Let extends Token {
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        left.writeTo(output);
-        right.writeTo(output);
+        output.writeToken(left);
+        output.writeToken(right);
     }
 
     @Override
     public String toString() {
-        return String.format("%s = %s", left, right);
+        return "Let{" +
+                "left=" + left +
+                ", right=" + right +
+                '}';
     }
 }

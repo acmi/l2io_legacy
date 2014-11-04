@@ -48,7 +48,7 @@ public class ConvertTool {
     }
 
     public static void save(UnrealPackageFile up, File savePath, PrintStream log, UnrealClassLoader classLoader) throws IOException {
-        ObjectFactory objectFactory = ObjectFactory.getInstance(classLoader);
+        ObjectFactory objectFactory = new ObjectFactory(classLoader);
         PropertiesUtil propertiesUtil = classLoader.getPropertiesUtil();
 
         if (log == null)

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,14 +31,12 @@ public class NativeParam extends Token {
 
     private final int objRef;
 
-    public NativeParam(UnrealPackageReadOnly unrealPackage, int objRef) {
-        super(unrealPackage);
+    public NativeParam(int objRef) {
         this.objRef = objRef;
     }
 
-    public NativeParam(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.objRef = input.readCompactInt();
+    public static NativeParam readFrom(BytecodeInput input) throws IOException {
+        return new NativeParam(input.readCompactInt());
     }
 
     @Override
@@ -47,8 +44,8 @@ public class NativeParam extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.ExportEntry getVariable() {
-        return (UnrealPackageReadOnly.ExportEntry) unrealPackage.objectReference(objRef);
+    public int getObjRef() {
+        return objRef;
     }
 
     @Override
@@ -59,6 +56,8 @@ public class NativeParam extends Token {
 
     @Override
     public String toString() {
-        return String.format("%s %s", getVariable().getObjectClass().getObjectName().getName(), getVariable().getObjectName().getName()); //todo
+        return "NativeParam{" +
+                "objRef=" + objRef +
+                '}';
     }
 }

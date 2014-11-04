@@ -19,40 +19,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.token;
 
-public final class NativeFunction {
-    private final int index;
-    private final String name;
-    private final boolean preOperator;
-    private final int operatorPrecedence;
-    private final boolean operator;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
-    public NativeFunction(int index, String name, boolean preOperator, int operatorPrecedence, boolean operator) {
-        this.index = index;
-        this.name = name;
-        this.preOperator = preOperator;
-        this.operatorPrecedence = operatorPrecedence;
-        this.operator = operator;
+import java.io.IOException;
+
+public class RotatorToBool extends Token {
+    public static final int OPCODE = 0x51;
+
+    private final Token value;
+
+    public RotatorToBool(Token value) {
+        this.value = value;
     }
 
-    public int getIndex() {
-        return index;
+    public static RotatorToBool readFrom(BytecodeInput input) throws IOException {
+        return new RotatorToBool(input.readToken());
     }
 
-    public String getName() {
-        return name;
+    @Override
+    protected int getOpcode() {
+        return OPCODE;
     }
 
-    public boolean isPreOperator() {
-        return preOperator;
+    public Token getValue() {
+        return value;
     }
 
-    public int getOperatorPrecedence() {
-        return operatorPrecedence;
+    @Override
+    public void writeTo(BytecodeOutput output) throws IOException {
+        super.writeTo(output);
+        output.writeToken(value);
     }
 
-    public boolean isOperator() {
-        return operator;
+    @Override
+    public String toString() {
+        return "RotatorToBool{" +
+                "value=" + value +
+                '}';
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -29,16 +28,22 @@ import java.io.IOException;
 public class EndFunctionParams extends Token {
     public static final int OPCODE = 0x16;
 
-    public EndFunctionParams(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final EndFunctionParams INSTANCE = new EndFunctionParams();
+
+    private EndFunctionParams() {
     }
 
-    public EndFunctionParams(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static EndFunctionParams readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    @Override
+    public String toString() {
+        return "EndFunctionParams";
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class GlobalFunction extends Token {
 
     private final int nameRef;
 
-    public GlobalFunction(UnrealPackageReadOnly unrealPackage, int nameRef) {
-        super(unrealPackage);
+    public GlobalFunction(int nameRef) {
         this.nameRef = nameRef;
     }
 
-    public GlobalFunction(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.nameRef = input.readCompactInt();
+    public static GlobalFunction readFrom(BytecodeInput input) throws IOException {
+        return new GlobalFunction(input.readCompactInt());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getNameRef() {
+        return nameRef;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class GlobalFunction extends Token {
 
     @Override
     public String toString() {
-        return String.format("Global.%s", unrealPackage.nameReference(nameRef));
+        return "GlobalFunction{" +
+                "nameRef=" + nameRef +
+                '}';
     }
 }

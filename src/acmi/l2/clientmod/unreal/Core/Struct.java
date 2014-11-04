@@ -23,15 +23,18 @@ package acmi.l2.clientmod.unreal.core;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.bytecode.BytecodeUtilImpl;
-import acmi.l2.clientmod.unreal.bytecode.NativeFunctionsHardcode;
+import acmi.l2.clientmod.unreal.bytecode.BytecodeUtil;
 import acmi.l2.clientmod.unreal.bytecode.token.Token;
 import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class Struct extends Field {
+    private static Logger log = Logger.getLogger(Struct.class.getName());
+
     public final int scriptText;
     public final int child;
     public final int friendlyName;
@@ -50,8 +53,10 @@ public class Struct extends Field {
         line = input.readInt();
         textPos = input.readInt();
         scriptSize = input.readInt();
-        //System.err.println(entry.getObjectFullName());
-        script = new BytecodeUtilImpl(entry.getUnrealPackage(), new NativeFunctionsHardcode()).readTokens(input, scriptSize);
+        log.fine(entry::getObjectFullName);
+        script = scriptSize > 0 ?
+                new BytecodeUtil(entry.getUnrealPackage().nameReference("None")).readTokens(input, scriptSize) :
+                Collections.emptyList();
     }
 
     public UnrealPackageReadOnly.Entry getScritpText() {

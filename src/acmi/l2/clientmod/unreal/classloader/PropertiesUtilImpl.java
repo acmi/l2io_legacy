@@ -162,8 +162,9 @@ public class PropertiesUtilImpl implements PropertiesUtil {
                 List<Object> arrayList = new ArrayList<>(arraySize);
 
                 String a = arrayInner.getObjectClass().getObjectName().getName();
+                Object o = arrayInner.getObjectFullName();
                 Property f = (Property) unrealClassLoader.getFieldQuetly(arrayInner.getObjectFullName())
-                        .orElseThrow(() -> new IllegalStateException("Field " + a + " not loaded"));
+                        .orElseThrow(() -> new IllegalStateException("Field " + o + " not loaded"));
 
                 array = false;
                 arrayInner = null;

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class NameConst extends Token {
 
     private final int nameRef;
 
-    public NameConst(UnrealPackageReadOnly unrealPackage, int nameRef) {
-        super(unrealPackage);
+    public NameConst(int nameRef) {
         this.nameRef = nameRef;
     }
 
-    public NameConst(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.nameRef = input.readCompactInt();
+    public static NameConst readFrom(BytecodeInput input) throws IOException {
+        return new NameConst(input.readCompactInt());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getNameRef() {
+        return nameRef;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class NameConst extends Token {
 
     @Override
     public String toString() {
-        return unrealPackage.nameReference(nameRef);
+        return "NameConst{" +
+                "nameRef=" + nameRef +
+                '}';
     }
 }

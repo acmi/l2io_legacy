@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -30,19 +29,16 @@ import java.io.IOException;
 public class Switch extends Token {
     public static final int OPCODE = 0x05;
 
-    private final int size;
+    private final int offset;
     private final Token expression;
 
-    public Switch(UnrealPackageReadOnly unrealPackage, int size, Token expression) {
-        super(unrealPackage);
-        this.size = size;
+    public Switch(int offset, Token expression) {
+        this.offset = offset;
         this.expression = expression;
     }
 
-    public Switch(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.size = input.readUnsignedByte();
-        this.expression = input.readToken();
+    public static Switch readFrom(BytecodeInput input) throws IOException {
+        return new Switch(input.readUnsignedByte(), input.readToken());
     }
 
     @Override
@@ -50,15 +46,26 @@ public class Switch extends Token {
         return OPCODE;
     }
 
+    public int getOffset() {
+        return offset;
+    }
+
+    public Token getExpression() {
+        return expression;
+    }
+
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        output.writeByte(size);
+        output.writeByte(offset);
         output.writeToken(expression);
     }
 
     @Override
     public String toString() {
-        return String.format("switch (%s){", expression);
+        return "Switch{" +
+                "offset=" + offset +
+                ", expression=" + expression +
+                '}';
     }
 }

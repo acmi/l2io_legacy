@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -29,12 +28,13 @@ import java.io.IOException;
 public class IteratorPop extends Token {
     public static final int OPCODE = 0x30;
 
-    public IteratorPop(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final IteratorPop INSTANCE = new IteratorPop();
+
+    private IteratorPop() {
     }
 
-    public IteratorPop(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static IteratorPop readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override
@@ -44,6 +44,6 @@ public class IteratorPop extends Token {
 
     @Override
     public String toString() {
-        return "}";
+        return "IteratorPop";
     }
 }

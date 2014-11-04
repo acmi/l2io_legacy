@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,23 +31,31 @@ public class RotatorConst extends Token {
 
     private final int pitch, yaw, roll;
 
-    public RotatorConst(UnrealPackageReadOnly unrealPackage, int pitch, int yaw, int roll) {
-        super(unrealPackage);
+    public RotatorConst(int pitch, int yaw, int roll) {
         this.pitch = pitch;
         this.yaw = yaw;
         this.roll = roll;
     }
 
-    public RotatorConst(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.pitch = input.readInt();
-        this.yaw = input.readInt();
-        this.roll = input.readInt();
+    public static RotatorConst readFrom(BytecodeInput input) throws IOException {
+        return new RotatorConst(input.readInt(), input.readInt(), input.readInt());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getPitch() {
+        return pitch;
+    }
+
+    public int getYaw() {
+        return yaw;
+    }
+
+    public int getRoll() {
+        return roll;
     }
 
     @Override
@@ -61,6 +68,10 @@ public class RotatorConst extends Token {
 
     @Override
     public String toString() {
-        return String.format("rot(%d,%d,%d)", pitch, yaw, roll);
+        return "RotatorConst{" +
+                "pitch=" + pitch +
+                ", yaw=" + yaw +
+                ", roll=" + roll +
+                '}';
     }
 }

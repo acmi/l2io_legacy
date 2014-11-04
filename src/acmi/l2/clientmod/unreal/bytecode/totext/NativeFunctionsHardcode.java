@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode;
+package acmi.l2.clientmod.unreal.bytecode.totext;
 
 import acmi.l2.clientmod.unreal.UnrealException;
 
@@ -146,7 +146,6 @@ public class NativeFunctionsHardcode implements NativeFunctionsSupplier {
         registerNativeFunction(new NativeFunction(236, "Chr", false, 0, false));
         registerNativeFunction(new NativeFunction(237, "Asc", false, 0, false));
         registerNativeFunction(new NativeFunction(238, "Substitute", false, 0, false));
-
         registerNativeFunction(new NativeFunction(242, "==", false, 24, true));
         registerNativeFunction(new NativeFunction(243, "!=", false, 26, true));
         registerNativeFunction(new NativeFunction(244, "FMin", false, 0, false));

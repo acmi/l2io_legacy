@@ -31,6 +31,7 @@ import acmi.l2.clientmod.unreal.core.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public class UnrealClassLoaderImpl implements UnrealClassLoader {
@@ -41,6 +42,7 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
 
     private final Map<String, Struct> structCache = new HashMap<>();
     private final Map<String, List<Field>> structFieldsCache = new HashMap<>();
+    private final Map<String, Field> fieldsCache = new HashMap<>();
 
     private final Map<Integer, Function> nativeFunctions = new HashMap<>();
 
@@ -54,12 +56,12 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
         return propertiesUtil;
     }
 
-    private UnrealPackageReadOnly.ExportEntry getExportEntry(String name) throws UnrealException {
+    private UnrealPackageReadOnly.ExportEntry getExportEntry(String name, Predicate<UnrealPackageReadOnly.ExportEntry> condition) throws UnrealException {
         String[] path = name.split("\\.", 2);
         return packageLoader.apply(path[0])
                 .getExportTable()
                 .stream()
-                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name))
+                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name) && condition.test(e))
                 .findAny()
                 .orElseThrow(() -> new UnrealException(String.format("Entry %s not found.", name)));
     }
@@ -80,16 +82,22 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
         return structFieldsCache.get(structName);
     }
 
+    private Struct getOrLoadStruct(String structName) throws IOException {
+        return structCache.containsKey(structName) ?
+                structCache.get(structName) :
+                loadStruct(structName);
+    }
+
     private void loadStructTree(String structName) throws UnrealException {
         try {
             List<Struct> list = new ArrayList<>();
 
-            Struct tmp = loadStruct(structName);
+            Struct tmp = getOrLoadStruct(structName);
             while (tmp != null) {
                 list.add(tmp);
 
                 UnrealPackageReadOnly.Entry superStruct = tmp.getEntry().getObjectSuperClass();
-                tmp = superStruct != null ? loadStruct(superStruct.getObjectFullName()) : null;
+                tmp = superStruct != null ? getOrLoadStruct(superStruct.getObjectFullName()) : null;
             }
 
             Collections.reverse(list);
@@ -100,18 +108,20 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
             for (Struct struct : list) {
                 String name = struct.getEntry().getObjectFullName();
 
-                UnrealPackageReadOnly.ExportEntry childEntry = (UnrealPackageReadOnly.ExportEntry) struct.getChild();
-                while (childEntry != null) {
-                    Field field = loadField(childEntry);
-
-                    fields.add(field);
-
-                    childEntry = field.getNext();
-                }
-
                 if (!structFieldsCache.containsKey(name)) {
+                    UnrealPackageReadOnly.Entry childEntry = struct.getChild();
+                    while (childEntry != null) {
+                        Field field = getOrLoadField(childEntry);
+
+                        fields.add(field);
+
+                        childEntry = field.getNext();
+                    }
+
                     structFieldsCache.put(name, Collections.unmodifiableList(new ArrayList<>(fields)));
                 }
+
+                fields = new ArrayList<>(structFieldsCache.get(name));
 
                 if (!structCache.containsKey(name)) {
                     if (struct instanceof Class)
@@ -126,7 +136,15 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
     }
 
     private Struct loadStruct(String name) throws IOException {
-        UnrealPackageReadOnly.ExportEntry entry = getExportEntry(name);
+        UnrealPackageReadOnly.ExportEntry entry = getExportEntry(name, e -> {
+            if (e.getObjectClass() == null)
+                return true;
+            String clazz = e.getObjectClass().getObjectFullName();
+            return "Core.Function".equals(clazz) ||
+                    "Core.Struct".equals(clazz) ||
+                    "Core.State".equals(clazz);
+
+        });
         DataInput buffer = new DataInputStream(new ByteArrayInputStream(entry.getObjectRawDataExternally()), entry.getOffset(), entry.getUnrealPackage().getCharset());
         Struct struct;
         switch (entry.getObjectClass() != null ? entry.getObjectClass().getObjectFullName() : "null") {
@@ -157,6 +175,23 @@ public class UnrealClassLoaderImpl implements UnrealClassLoader {
 
         return fieldClass.getConstructor(DataInput.class, UnrealPackageReadOnly.ExportEntry.class, PropertiesUtil.class)
                 .newInstance(buffer, entry, propertiesUtil);
+    }
+
+    @Override
+    public Field getField(String field) throws UnrealException {
+        try {
+            return getOrLoadField(getExportEntry(field, e -> true));
+        } catch (Exception e) {
+            throw new UnrealException(e);
+        }
+    }
+
+    private Field getOrLoadField(UnrealPackageReadOnly.Entry entry) throws IOException, ReflectiveOperationException {
+        String name = entry.getObjectFullName();
+        if (!fieldsCache.containsKey(name)) {
+            fieldsCache.put(name, loadField((UnrealPackageReadOnly.ExportEntry) entry));
+        }
+        return fieldsCache.get(name);
     }
 
     @Override

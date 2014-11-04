@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -34,21 +33,26 @@ public class VirtualFunction extends Token {
     private final int nameRef;
     private final Token[] params;
 
-    public VirtualFunction(UnrealPackageReadOnly unrealPackage, int nameRef, Token[] params) {
-        super(unrealPackage);
+    public VirtualFunction(int nameRef, Token[] params) {
         this.nameRef = nameRef;
         this.params = params;
     }
 
-    public VirtualFunction(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.nameRef = input.readCompactInt();
-        this.params = input.readFunctionParams();
+    public static VirtualFunction readFrom(BytecodeInput input) throws IOException {
+        return new VirtualFunction(input.readCompactInt(), input.readFunctionParams());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getNameRef() {
+        return nameRef;
+    }
+
+    public Token[] getParams() {
+        return params;
     }
 
     @Override
@@ -60,6 +64,9 @@ public class VirtualFunction extends Token {
 
     @Override
     public String toString() {
-        return unrealPackage.nameReference(nameRef) + Arrays.toString(params);//TODO
+        return "VirtualFunction{" +
+                "nameRef=" + nameRef +
+                ", params=" + Arrays.toString(params) +
+                '}';
     }
 }

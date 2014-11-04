@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class DelegateName extends Token {
 
     private final int nameRef;
 
-    public DelegateName(UnrealPackageReadOnly unrealPackage, int nameRef) {
-        super(unrealPackage);
+    public DelegateName(int nameRef) {
         this.nameRef = nameRef;
     }
 
-    public DelegateName(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.nameRef = input.readCompactInt();
+    public static DelegateName readFrom(BytecodeInput input) throws IOException {
+        return new DelegateName(input.readCompactInt());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getNameRef() {
+        return nameRef;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class DelegateName extends Token {
 
     @Override
     public String toString() {
-        return unrealPackage.nameReference(nameRef);
+        return "DelegateName{" +
+                "nameRef=" + nameRef +
+                '}';
     }
 }

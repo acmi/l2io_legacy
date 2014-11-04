@@ -21,18 +21,81 @@
  */
 package acmi.l2.clientmod.unreal.objectfactory;
 
+import acmi.l2.clientmod.io.DataInput;
+import acmi.l2.clientmod.io.DataInputStream;
+import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
+import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
 import acmi.l2.clientmod.unreal.core.Object;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
-public interface ObjectFactory extends Function<UnrealPackageReadOnly.ExportEntry, Object> {
-    static ObjectFactory getInstance(UnrealClassLoader classLoader) {
-        return new DefalutObjectFactory(classLoader);
+public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry, Object> {
+    private static final Logger log = Logger.getLogger(ObjectFactory.class.getName());
+
+    public static String unrealClassesPackage = "acmi.l2.clientmod.unreal";
+
+    private final UnrealClassLoader classLoader;
+
+    public ObjectFactory(UnrealClassLoader classLoader) {
+        this.classLoader = classLoader;
+    }
+
+    public UnrealClassLoader getClassLoader() {
+        return classLoader;
     }
 
     @Override
-    Object apply(UnrealPackageReadOnly.ExportEntry exportEntry) throws UnrealException;
+    public Object apply(UnrealPackageReadOnly.ExportEntry entry) throws UnrealException {
+        if (entry.getObjectClass() == null)
+            return classLoader.getStructQuetly(entry.getObjectFullName())
+                    .orElseThrow(() -> new IllegalArgumentException("Class can only be loaded from classpath, use " + UnrealClassLoader.class.getSimpleName()));
+
+        java.lang.Class<? extends Object> clazz = getClass(entry.getObjectClass().getObjectFullName());
+        try {
+            Constructor<? extends Object> constructor = clazz.getConstructor(DataInput.class, UnrealPackageFile.ExportEntry.class, PropertiesUtil.class);
+            ByteArrayInputStream bais = new ByteArrayInputStream(entry.getObjectRawDataExternally());
+            DataInputStream dis = new DataInputStream(bais, entry.getOffset(), entry.getUnrealPackage().getCharset());
+            Object object = constructor.newInstance(dis, entry, classLoader.getPropertiesUtil());
+            if (dis.available() > 0)
+                log.warning(() -> String.format("%d bytes of %s not read", bais.available(), object));
+            return object;
+        } catch (ReflectiveOperationException | IOException e) {
+            throw new UnrealException(e);
+        }
+    }
+
+    private java.lang.Class<? extends Object> getClass(String className) {
+        if (className.equals("Core.Object"))
+            return AsIsObject.class;
+
+        Class<?> clazz = null;
+        try {
+            String javaClassName = unrealClassesPackage + "." + unrealClassNameToJavaClassName(className);
+            log.fine(() -> String.format("%s -> %s", className, javaClassName));
+            clazz = java.lang.Class.forName(javaClassName);
+            return clazz.asSubclass(Object.class);
+        } catch (ClassNotFoundException e) {
+            log.fine(() -> String.format("Class %s not implemented in java", className));
+        } catch (ClassCastException e) {
+            Class<?> clazzLocal = clazz;
+            log.warning(() -> String.format("%s is not subclass of %s", clazzLocal, Object.class));
+        }
+
+        String parent = classLoader.getSuperClass(className);
+        if (parent == null)
+            parent = "Core.Object";
+        return getClass(parent);
+    }
+
+    private String unrealClassNameToJavaClassName(String className) {
+        String[] path = className.split("\\.");
+        return String.format("%s.%s", path[0].toLowerCase(), path[1]);
+    }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class IntToFloat extends Token {
 
     private final Token value;
 
-    public IntToFloat(UnrealPackageReadOnly unrealPackage, Token value) {
-        super(unrealPackage);
+    public IntToFloat(Token value) {
         this.value = value;
     }
 
-    public IntToFloat(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.value = input.readToken();
+    public static IntToFloat readFrom(BytecodeInput input) throws IOException {
+        return new IntToFloat(input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getValue() {
+        return value;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class IntToFloat extends Token {
 
     @Override
     public String toString() {
-        return value.toString();
+        return "IntToFloat{" +
+                "value=" + value +
+                '}';
     }
 }

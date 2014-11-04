@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -35,20 +34,15 @@ public class Context extends Token {
     private final int bSize;
     private final Token token2;
 
-    public Context(UnrealPackageReadOnly unrealPackage, Token token1, int wSkip, int bSize, Token token2) {
-        super(unrealPackage);
+    public Context(Token token1, int wSkip, int bSize, Token token2) {
         this.token1 = token1;
         this.wSkip = wSkip;
         this.bSize = bSize;
         this.token2 = token2;
     }
 
-    public Context(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.token1 = input.readToken();
-        this.wSkip = input.readUnsignedShort();
-        this.bSize = input.readUnsignedByte();
-        this.token2 = input.readToken();
+    public static Context readFrom(BytecodeInput input) throws IOException {
+        return new Context(input.readToken(), input.readUnsignedShort(), input.readUnsignedByte(), input.readToken());
     }
 
     @Override
@@ -59,14 +53,19 @@ public class Context extends Token {
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        token1.writeTo(output);
+        output.writeToken(token1);
         output.writeShort(wSkip);
         output.writeByte(bSize);
-        token2.writeTo(output);
+        output.writeToken(token2);
     }
 
     @Override
     public String toString() {
-        return String.format("%s.%s", token1, token2);
+        return "Context{" +
+                "token1=" + token1 +
+                ", wSkip=" + wSkip +
+                ", bSize=" + bSize +
+                ", token2=" + token2 +
+                '}';
     }
 }

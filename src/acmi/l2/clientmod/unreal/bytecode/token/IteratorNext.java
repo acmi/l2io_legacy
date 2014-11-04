@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -29,12 +28,13 @@ import java.io.IOException;
 public class IteratorNext extends Token {
     public static final int OPCODE = 0x31;
 
-    public IteratorNext(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final IteratorNext INSTANCE = new IteratorNext();
+
+    private IteratorNext() {
     }
 
-    public IteratorNext(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static IteratorNext readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override
@@ -44,6 +44,6 @@ public class IteratorNext extends Token {
 
     @Override
     public String toString() {
-        return "continue";
+        return "IteratorNext";
     }
 }

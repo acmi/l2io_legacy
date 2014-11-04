@@ -21,12 +21,12 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LabelTable extends Token {
@@ -34,27 +34,29 @@ public class LabelTable extends Token {
 
     private final Label[] labels;
 
-    public LabelTable(UnrealPackageReadOnly unrealPackage, Label[] labels) {
-        super(unrealPackage);
+    public LabelTable(Label[] labels) {
         this.labels = labels;
     }
 
-    public LabelTable(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static LabelTable readFrom(BytecodeInput input) throws IOException {
         List<Label> labels = new ArrayList<>();
         Label tmp;
         do {
             tmp = new Label(input);
-            if (tmp.nameRef == unrealPackage.nameReference("None"))
+            if (tmp.nameRef == input.getNoneInd())
                 break;
             labels.add(tmp);
         } while (true);
-        this.labels = labels.toArray(new Label[labels.size()]);
+        return new LabelTable(labels.toArray(new Label[labels.size()]));
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Label[] getLabels() {
+        return labels;
     }
 
     @Override
@@ -63,12 +65,14 @@ public class LabelTable extends Token {
         for (Label label : labels) {
             label.writeTo(output);
         }
-        new Label(unrealPackage.nameReference("None"), 0xffff).writeTo(output);
+        new Label(output.getNoneInd(), 0xffff).writeTo(output);
     }
 
     @Override
     public String toString() {
-        return "";
+        return "LabelTable{" +
+                "labels=" + Arrays.toString(labels) +
+                '}';
     }
 
     public static class Label {
@@ -96,6 +100,14 @@ public class LabelTable extends Token {
         public void writeTo(BytecodeOutput output) throws IOException {
             output.writeCompactInt(nameRef);
             output.writeInt(offset);
+        }
+
+        @Override
+        public String toString() {
+            return "Label{" +
+                    "nameRef=" + nameRef +
+                    ", offset=" + offset +
+                    '}';
         }
     }
 }

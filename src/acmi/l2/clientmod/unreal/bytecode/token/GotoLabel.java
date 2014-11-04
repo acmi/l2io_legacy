@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class GotoLabel extends Token {
 
     private final Token label;
 
-    public GotoLabel(UnrealPackageReadOnly unrealPackage, Token label) {
-        super(unrealPackage);
+    public GotoLabel(Token label) {
         this.label = label;
     }
 
-    public GotoLabel(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.label = input.readToken();
+    public static GotoLabel readFrom(BytecodeInput input) throws IOException {
+        return new GotoLabel(input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getLabel() {
+        return label;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class GotoLabel extends Token {
 
     @Override
     public String toString() {
-        return String.format("goto (%s)", label);
+        return "GotoLabel{" +
+                "label=" + label +
+                '}';
     }
 }

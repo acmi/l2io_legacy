@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -33,16 +32,13 @@ public class StructMember extends Token {
     private final int objRef;
     private final Token struct;
 
-    public StructMember(UnrealPackageReadOnly unrealPackage, int objRef, Token struct) {
-        super(unrealPackage);
+    public StructMember(int objRef, Token struct) {
         this.objRef = objRef;
         this.struct = struct;
     }
 
-    public StructMember(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.objRef = input.readCompactInt();
-        this.struct = input.readToken();
+    public static StructMember readFrom(BytecodeInput input) throws IOException {
+        return new StructMember(input.readCompactInt(), input.readToken());
     }
 
     @Override
@@ -50,8 +46,8 @@ public class StructMember extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.Entry getMember() {
-        return unrealPackage.objectReference(objRef);
+    public int getObjRef() {
+        return objRef;
     }
 
     public Token getStruct() {
@@ -67,6 +63,9 @@ public class StructMember extends Token {
 
     @Override
     public String toString() {
-        return String.format("%s.%s", getStruct(), getMember().getObjectName().getName());
+        return "StructMember{" +
+                "objRef=" + objRef +
+                ", struct=" + struct +
+                '}';
     }
 }

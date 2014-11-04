@@ -1,6 +1,5 @@
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -8,12 +7,13 @@ import java.io.IOException;
 public class Stop extends Token {
     public static final int OPCODE = 0x08;
 
-    public Stop(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final Stop INSTANCE = new Stop();
+
+    private Stop() {
     }
 
-    public Stop(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static Stop readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override
@@ -23,6 +23,6 @@ public class Stop extends Token {
 
     @Override
     public String toString() {
-        return "";
+        return "Stop";
     }
 }

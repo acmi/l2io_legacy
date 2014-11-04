@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -34,16 +33,13 @@ public class FinalFunction extends Token {
     private final int funcRef;
     private final Token[] params;
 
-    public FinalFunction(UnrealPackageReadOnly unrealPackage, int funcRef, Token... params) {
-        super(unrealPackage);
+    public FinalFunction(int funcRef, Token... params) {
         this.funcRef = funcRef;
         this.params = params;
     }
 
-    public FinalFunction(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.funcRef = input.readCompactInt();
-        this.params = input.readFunctionParams();
+    public static FinalFunction readFrom(BytecodeInput input) throws IOException {
+        return new FinalFunction(input.readCompactInt(), input.readFunctionParams());
     }
 
     @Override
@@ -51,8 +47,12 @@ public class FinalFunction extends Token {
         return OPCODE;
     }
 
-    public UnrealPackageReadOnly.Entry getFunction() {
-        return unrealPackage.objectReference(funcRef);
+    public int getFuncRef() {
+        return funcRef;
+    }
+
+    public Token[] getParams() {
+        return params;
     }
 
     @Override
@@ -64,6 +64,9 @@ public class FinalFunction extends Token {
 
     @Override
     public String toString() {
-        return getFunction().getObjectName().getName() + Arrays.toString(params);
+        return "FinalFunction{" +
+                "funcRef=" + funcRef +
+                ", params=" + Arrays.toString(params) +
+                '}';
     }
 }

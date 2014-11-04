@@ -1,6 +1,5 @@
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -11,14 +10,12 @@ public class Return extends Token {
 
     private final Token value;
 
-    public Return(UnrealPackageReadOnly unrealPackage, Token value) {
-        super(unrealPackage);
+    public Return(Token value) {
         this.value = value;
     }
 
-    public Return(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.value = input.readToken();
+    public static Return readFrom(BytecodeInput input) throws IOException {
+        return new Return(input.readToken());
     }
 
     @Override
@@ -33,11 +30,13 @@ public class Return extends Token {
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        value.writeTo(output);
+        output.writeToken(value);
     }
 
     @Override
     public String toString() {
-        return String.format("return %s", value).trim() + ";";
+        return "Return{" +
+                "value=" + value +
+                '}';
     }
 }

@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class IntToByte extends Token {
 
     private final Token value;
 
-    public IntToByte(UnrealPackageReadOnly unrealPackage, Token value) {
-        super(unrealPackage);
+    public IntToByte(Token value) {
         this.value = value;
     }
 
-    public IntToByte(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.value = input.readToken();
+    public static IntToByte readFrom(BytecodeInput input) throws IOException {
+        return new IntToByte(input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getValue() {
+        return value;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class IntToByte extends Token {
 
     @Override
     public String toString() {
-        return String.valueOf(value);
+        return "IntToByte{" +
+                "value=" + value +
+                '}';
     }
 }

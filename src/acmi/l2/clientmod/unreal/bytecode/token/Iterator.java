@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -33,21 +32,26 @@ public class Iterator extends Token {
     private final Token expression;
     private final int endOfLoopOffset;
 
-    public Iterator(UnrealPackageReadOnly unrealPackage, Token expression, int endOfLoopOffset) {
-        super(unrealPackage);
+    public Iterator(Token expression, int endOfLoopOffset) {
         this.expression = expression;
         this.endOfLoopOffset = endOfLoopOffset;
     }
 
-    public Iterator(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.expression = input.readToken();
-        this.endOfLoopOffset = input.readUnsignedShort();
+    public static Iterator readFrom(BytecodeInput input) throws IOException {
+        return new Iterator(input.readToken(), input.readUnsignedShort());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getExpression() {
+        return expression;
+    }
+
+    public int getEndOfLoopOffset() {
+        return endOfLoopOffset;
     }
 
     @Override
@@ -59,6 +63,9 @@ public class Iterator extends Token {
 
     @Override
     public String toString() {
-        return String.format("ForEach %s {", expression);
+        return "Iterator{" +
+                "expression=" + expression +
+                ", endOfLoopOffset=" + endOfLoopOffset +
+                '}';
     }
 }

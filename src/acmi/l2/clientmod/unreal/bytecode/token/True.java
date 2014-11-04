@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 
 import java.io.IOException;
@@ -29,12 +28,13 @@ import java.io.IOException;
 public class True extends Token {
     public static final int OPCODE = 0x27;
 
-    public True(UnrealPackageReadOnly unrealPackage) {
-        super(unrealPackage);
+    public static final True INSTANCE = new True();
+
+    private True() {
     }
 
-    public True(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
+    public static True readFrom(BytecodeInput input) throws IOException {
+        return INSTANCE;
     }
 
     @Override

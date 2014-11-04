@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class Jump extends Token {
 
     private final int targetOffset;
 
-    public Jump(UnrealPackageReadOnly unrealPackage, int targetOffset) {
-        super(unrealPackage);
+    public Jump(int targetOffset) {
         this.targetOffset = targetOffset;
     }
 
-    public Jump(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.targetOffset = input.readUnsignedShort();
+    public static Jump readFrom(BytecodeInput input) throws IOException {
+        return new Jump(input.readUnsignedShort());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public int getTargetOffset() {
+        return targetOffset;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class Jump extends Token {
 
     @Override
     public String toString() {
-        return String.format("goto %04x", targetOffset);
+        return "Jump{" +
+                "targetOffset=" + targetOffset +
+                '}';
     }
 }

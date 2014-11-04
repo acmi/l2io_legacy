@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,23 +31,31 @@ public class VectorConst extends Token {
 
     private final float x, y, z;
 
-    public VectorConst(UnrealPackageReadOnly unrealPackage, float x, float y, float z) {
-        super(unrealPackage);
+    public VectorConst(float x, float y, float z) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public VectorConst(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.x = input.readFloat();
-        this.y = input.readFloat();
-        this.z = input.readFloat();
+    public static VectorConst readFrom(BytecodeInput input) throws IOException {
+        return new VectorConst(input.readFloat(), input.readFloat(), input.readFloat());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public float getX() {
+        return x;
+    }
+
+    public float getY() {
+        return y;
+    }
+
+    public float getZ() {
+        return z;
     }
 
     @Override
@@ -61,6 +68,10 @@ public class VectorConst extends Token {
 
     @Override
     public String toString() {
-        return String.format("vect(%f,%f,%f)", x, y, z);
+        return "VectorConst{" +
+                "x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
     }
 }

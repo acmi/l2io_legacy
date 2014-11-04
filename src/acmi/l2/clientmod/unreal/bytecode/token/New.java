@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -35,25 +34,36 @@ public class New extends Token {
     private final Token flags;
     private final Token clazz;
 
-    public New(UnrealPackageReadOnly unrealPackage, Token outer, Token name, Token flags, Token clazz) {
-        super(unrealPackage);
+    public New(Token outer, Token name, Token flags, Token clazz) {
         this.outer = outer;
         this.name = name;
         this.flags = flags;
         this.clazz = clazz;
     }
 
-    public New(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.outer = input.readToken();
-        this.name = input.readToken();
-        this.flags = input.readToken();
-        this.clazz = input.readToken();
+    public static New readFrom(BytecodeInput input) throws IOException {
+        return new New(input.readToken(), input.readToken(), input.readToken(), input.readToken());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public Token getOuter() {
+        return outer;
+    }
+
+    public Token getName() {
+        return name;
+    }
+
+    public Token getFlags() {
+        return flags;
+    }
+
+    public Token getClazz() {
+        return clazz;
     }
 
     @Override
@@ -67,6 +77,11 @@ public class New extends Token {
 
     @Override
     public String toString() {
-        return String.format("new (%s, %s, %s, %s)", outer, name, flags, clazz);
+        return "New{" +
+                "outer=" + outer +
+                ", name=" + name +
+                ", flags=" + flags +
+                ", clazz=" + clazz +
+                '}';
     }
 }

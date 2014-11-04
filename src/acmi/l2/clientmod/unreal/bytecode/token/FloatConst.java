@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -32,19 +31,21 @@ public class FloatConst extends Token {
 
     private final float value;
 
-    public FloatConst(UnrealPackageReadOnly unrealPackage, float value) {
-        super(unrealPackage);
+    public FloatConst(float value) {
         this.value = value;
     }
 
-    public FloatConst(UnrealPackageReadOnly unrealPackage, BytecodeInput input) throws IOException {
-        super(unrealPackage, input);
-        this.value = input.readFloat();
+    public static FloatConst readFrom(BytecodeInput input) throws IOException {
+        return new FloatConst(input.readFloat());
     }
 
     @Override
     protected int getOpcode() {
         return OPCODE;
+    }
+
+    public float getValue() {
+        return value;
     }
 
     @Override
@@ -55,6 +56,8 @@ public class FloatConst extends Token {
 
     @Override
     public String toString() {
-        return String.valueOf(value);
+        return "FloatConst{" +
+                "value=" + value +
+                '}';
     }
 }

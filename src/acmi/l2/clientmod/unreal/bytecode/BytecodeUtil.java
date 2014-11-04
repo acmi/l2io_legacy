@@ -5,10 +5,8 @@ import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.bytecode.token.*;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,10 +30,22 @@ public class BytecodeUtil {
         this.noneInd = noneInd;
     }
 
+    public int getNoneInd() {
+        return noneInd;
+    }
+
+    public BytecodeInput createBytecodeInput(DataInput input) {
+        return new BytecodeInputWrapper(input, noneInd, this::readToken);
+    }
+
+    public BytecodeOutput createBytecodeOutput(DataOutput output) {
+        return new BytecodeOutputWrapper(output, noneInd);
+    }
+
     public List<Token> readTokens(DataInput input, int scriptSize) throws UnrealException {
         List<Token> tokens = new ArrayList<>();
         try {
-            BytecodeInputWrapper wrapper = new BytecodeInputWrapper(input);
+            BytecodeInput wrapper = createBytecodeInput(input);
             while (wrapper.getSize() < scriptSize) {
                 log.fine(() -> String.format("\t%d/%d", wrapper.getSize(), scriptSize));
                 Token token = readToken(wrapper);
@@ -57,7 +67,7 @@ public class BytecodeUtil {
             throw new IOException(String.format("Unknown token: %02x, table: %s", opcode, table == mainTokenTable ? "mainTokenTable" : "conversionTokenTable"));
         Token token;
         try {
-            if (opcode == ConversionTokenTable.OPCODE) {
+            if (opcode == ConversionTable.OPCODE) {
                 table = conversionTokenTable;
                 token = (Token) constructor.invoke(null, input);
                 table = mainTokenTable;
@@ -85,201 +95,12 @@ public class BytecodeUtil {
 
     public int writeTokens(DataOutput output, List<Token> tokens) throws UnrealException {
         try {
-            BytecodeOutputWrapper wrapper = new BytecodeOutputWrapper(output);
+            BytecodeOutputWrapper wrapper = new BytecodeOutputWrapper(output, noneInd);
             for (Token token : tokens)
                 wrapper.writeToken(token);
             return wrapper.getSize();
         } catch (Exception e) {
             throw new UnrealException(e);
-        }
-    }
-
-    private class BytecodeInputWrapper implements BytecodeInput {
-        private DataInput input;
-        private int size;
-
-        private BytecodeInputWrapper(DataInput input) {
-            this.input = input;
-        }
-
-        public int getSize() {
-            return size;
-        }
-
-        @Override
-        public int getNoneInd() {
-            return noneInd;
-        }
-
-        @Override
-        public int read() throws IOException {
-            return input.read();
-        }
-
-        @Override
-        public Charset getCharset() {
-            return input.getCharset();
-        }
-
-        @Override
-        public int getPosition() throws IOException {
-            return input.getPosition();
-        }
-
-        @Override
-        public int readUnsignedByte() throws IOException {
-            int val = input.readUnsignedByte();
-            size += 1;
-            return val;
-        }
-
-        @Override
-        public int readUnsignedShort() throws IOException {
-            int val = input.readUnsignedShort();
-            size += 2;
-            return val;
-        }
-
-        @Override
-        public int readInt() throws IOException {
-            int val = input.readInt();
-            size += 4;
-            return val;
-        }
-
-        @Override
-        public int readCompactInt() throws IOException {
-            int val = input.readCompactInt();
-            size += 4;
-            return val;
-        }
-
-        @Override
-        public long readLong() throws IOException {
-            long val = input.readLong();
-            size += 8;
-            return val;
-        }
-
-        @Override
-        public float readFloat() throws IOException {
-            float val = input.readFloat();
-            size += 4;
-            return val;
-        }
-
-        @Override
-        public String readLine() throws IOException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            int b;
-            do {
-                b = readUnsignedByte();
-                baos.write(b);
-            } while (b != 0);
-            String s = baos.toString(getCharset().name());
-            //size += s.length();
-            return s.substring(0, s.length() - 1);
-        }
-
-        @Override
-        public String readUTF() throws IOException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            int b;
-            do {
-                b = input.readUnsignedShort();
-                baos.write(b);
-            } while (b != 0);
-            String s = baos.toString("utf-16le");
-            size += s.length();
-            return s.substring(0, s.length() - 1);
-        }
-
-        public Token readToken() throws IOException {
-            return BytecodeUtil.this.readToken(this);
-        }
-    }
-
-    private class BytecodeOutputWrapper implements BytecodeOutput {
-        private DataOutput output;
-        private int size;
-
-        private BytecodeOutputWrapper(DataOutput output) {
-            this.output = output;
-        }
-
-        public int getSize() {
-            return size;
-        }
-
-        @Override
-        public int getNoneInd() {
-            return noneInd;
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            output.write(b);
-        }
-
-        @Override
-        public Charset getCharset() {
-            return output.getCharset();
-        }
-
-        @Override
-        public int getPosition() throws IOException {
-            return output.getPosition();
-        }
-
-        @Override
-        public void writeByte(int val) throws IOException {
-            output.writeByte(val);
-            size += 1;
-        }
-
-        @Override
-        public void writeShort(int val) throws IOException {
-            output.writeShort(val);
-            size += 2;
-        }
-
-        @Override
-        public void writeInt(int val) throws IOException {
-            output.writeInt(val);
-            size += 4;
-        }
-
-        @Override
-        public void writeCompactInt(int val) throws IOException {
-            output.writeCompactInt(val);
-            size += 4;
-        }
-
-        @Override
-        public void writeLong(long val) throws IOException {
-            output.writeLong(val);
-            size += 8;
-        }
-
-        @Override
-        public void writeFloat(float val) throws IOException {
-            output.writeFloat(val);
-            size += 4;
-        }
-
-        @Override
-        public void writeLine(String s) throws IOException {
-            byte[] bytes = (s + '\0').getBytes(getCharset());
-            write(bytes);
-            size += bytes.length;
-        }
-
-        @Override
-        public void writeUTF(String s) throws IOException {
-            if (s != null)
-                for (int i = 0; i < s.length(); i++)
-                    writeShort(s.charAt(i));
-            writeShort(0);
         }
     }
 
@@ -336,12 +157,12 @@ public class BytecodeUtil {
         register(IteratorNext.class, mainTokenTable);      //31
         register(StructCmpEq.class, mainTokenTable);       //32
         register(StructCmpNe.class, mainTokenTable);       //33
-        //register(UnicodeStringConst.class, mainTokenTable);//34
+
 
         register(StructMember.class, mainTokenTable);      //36
         register(Length.class, mainTokenTable);            //37
         register(GlobalFunction.class, mainTokenTable);    //38
-        register(ConversionTokenTable.class, mainTokenTable);//39
+        register(ConversionTable.class, mainTokenTable);   //39
         register(ByteToInt.class, mainTokenTable);         //3a
         register(ByteToBool.class, mainTokenTable);        //3b
         register(ByteToFloat.class, mainTokenTable);       //3c

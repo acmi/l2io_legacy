@@ -30,9 +30,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface BytecodeInput extends DataInput {
+    int getNoneInd();
+
     Token readToken() throws IOException;
 
-    int getNoneInd();
+    int getSize();
 
     default Token[] readFunctionParams() throws IOException {
         List<Token> tokens = new ArrayList<>();

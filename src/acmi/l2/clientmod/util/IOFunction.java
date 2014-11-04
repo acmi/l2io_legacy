@@ -19,45 +19,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode.token;
-
-import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
-import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+package acmi.l2.clientmod.util;
 
 import java.io.IOException;
 
-public class ConversionTokenTable extends Token {
-    public static final int OPCODE = 0x39;
-
-    private Token inner;
-
-    public ConversionTokenTable(Token inner) {
-        this.inner = inner;
-    }
-
-    public static ConversionTokenTable readFrom(BytecodeInput input) throws IOException {
-        return new ConversionTokenTable(input.readToken());
-    }
-
-    @Override
-    protected int getOpcode() {
-        return OPCODE;
-    }
-
-    public Token getInner() {
-        return inner;
-    }
-
-    @Override
-    public void writeTo(BytecodeOutput output) throws IOException {
-        super.writeTo(output);
-        inner.writeTo(output);
-    }
-
-    @Override
-    public String toString() {
-        return "OldOpcode{" +
-                "inner=" + inner +
-                '}';
-    }
+public interface IOFunction<T, R> {
+    R apply(T t) throws IOException;
 }

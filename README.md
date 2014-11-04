@@ -5,25 +5,29 @@ Library for reading/modifying Lineage 2 packages.
 #### Usage
 ```java
 import acmi.l2.clientmod.io.UnrealPackageFile;
-import acmi.l2.clientmod.util.BufferUtil;
+import acmi.l2.clientmod.unreal.classloader.FolderPackageLoader;
+import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
+import acmi.l2.clientmod.unreal.core.TextBuffer;
+import acmi.l2.clientmod.unreal.objectfactory.ObjectFactory;
 
+
+String l2SystemFolder = "C:\\Lineage 2\\system";
+
+UnrealClassLoader classLoader = new UnrealClassLoader(new FolderPackageLoader(l2SystemFolder));
+ObjectFactory objectFactory = new ObjectFactory(classLoader);
 
 String fileName = "Engine.u";
-boolean readOnly = true;
-
 String entryName = "Actor.ScriptText";
 
-try (UnrealPackageFile up = new UnrealPackageFile(new File(fileName), readOnly)) {
-  UnrealPackageFile.ExportEntry entry = up.getExportTable()
+try (UnrealPackageFile up = new UnrealPackageFile(new File(l2SystemFolder, fileName), true)) {
+  TextBuffer textBuffer = up.getExportTable()
       .stream()
       .filter(e -> e.getObjectInnerFullName().equals(entryName))
       .findAny()
+      .map(objectFactory)
+      .map(o -> (TextBuffer) o)
       .orElseThrow(() -> new IllegalArgumentException(entryName + " not found"));
 
-  ByteBuffer buffer = ByteBuffer.wrap(entry.getObjectRawData());
-  buffer.position(9);
-  String scriptText = BufferUtil.getString(buffer, Charset.forName("EUC-KR"));
-
-  System.out.println(scriptText);
+  System.out.println(textBuffer.getText());
 }
 ```

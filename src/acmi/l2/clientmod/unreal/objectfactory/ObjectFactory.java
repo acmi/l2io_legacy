@@ -23,7 +23,6 @@ package acmi.l2.clientmod.unreal.objectfactory;
 
 import acmi.l2.clientmod.io.DataInput;
 import acmi.l2.clientmod.io.DataInputStream;
-import acmi.l2.clientmod.io.UnrealPackageFile;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
@@ -59,7 +58,7 @@ public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry
             throw new IllegalArgumentException(String.format("%s can only be loaded from classpath, use %s", entry.getObjectClass() == null ? "Class" : clazz.getSimpleName(), UnrealClassLoader.class.getSimpleName()));
 
         try {
-            Constructor<? extends Object> constructor = clazz.getConstructor(DataInput.class, UnrealPackageFile.ExportEntry.class, PropertiesUtil.class);
+            Constructor<? extends Object> constructor = clazz.getConstructor(DataInput.class, UnrealPackageReadOnly.ExportEntry.class, PropertiesUtil.class);
             ByteArrayInputStream bais = new ByteArrayInputStream(entry.getObjectRawDataExternally());
             DataInputStream dis = new DataInputStream(bais, entry.getOffset(), entry.getUnrealPackage().getCharset());
             Object object = constructor.newInstance(dis, entry, classLoader.getPropertiesUtil());

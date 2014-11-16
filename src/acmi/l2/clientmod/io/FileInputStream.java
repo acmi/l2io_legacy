@@ -84,7 +84,7 @@ public class FileInputStream extends FilterInputStream {
         byte[] header = new byte[28];
         new DataInputStream(input).readFully(header);
         String headerStr = new String(header, Charset.forName("utf-16le"));
-        if (headerStr.matches("Lineage2Ver\\d{3}"))
+        if (!headerStr.matches("Lineage2Ver\\d{3}"))
             throw new IOException("Not a Lineage 2 file");
 
         return Integer.valueOf(headerStr.substring(11));

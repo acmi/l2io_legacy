@@ -39,4 +39,12 @@ public final class L2Ver1x1InputStream extends FilterInputStream {
         int b = in.read();
         return b < 0 ? b : b ^ xorKey;
     }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        int r = in.read(b, off, len);
+        for (int i = 0; i < r; i++)
+            b[off + i] ^= xorKey;
+        return r;
+    }
 }

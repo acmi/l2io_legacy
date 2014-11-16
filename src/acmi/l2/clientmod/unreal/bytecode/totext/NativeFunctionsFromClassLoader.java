@@ -39,7 +39,7 @@ public class NativeFunctionsFromClassLoader implements NativeFunctionsSupplier {
     @Override
     public NativeFunction apply(Integer integer) throws UnrealException {
         Function function = classLoader.getNativeFunction(integer);
-        Collection<acmi.l2.clientmod.unreal.core.Function.Flag> flags = getFlags(function.functionFlags);
+        Collection<Function.Flag> flags = getFlags(function.functionFlags);
         return new NativeFunction(integer, function.getFriendlyName(), flags.contains(PRE_OPERATOR), function.operatorPrecedence, flags.contains(OPERATOR));
     }
 }

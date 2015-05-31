@@ -56,8 +56,8 @@ public class FloatToString extends Token {
 
     @Override
     public String toString() {
-        return "FloatToString{" +
-                "value=" + value +
-                '}';
+        return "FloatToString("
+                + value
+                + ')';
     }
 }

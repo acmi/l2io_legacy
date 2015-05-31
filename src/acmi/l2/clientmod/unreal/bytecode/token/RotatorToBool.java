@@ -56,8 +56,8 @@ public class RotatorToBool extends Token {
 
     @Override
     public String toString() {
-        return "RotatorToBool{" +
-                "value=" + value +
-                '}';
+        return "RotatorToBool("
+                + value
+                + ')';
     }
 }

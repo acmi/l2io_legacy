@@ -56,8 +56,8 @@ public class FloatToByte extends Token {
 
     @Override
     public String toString() {
-        return "FloatToByte{" +
-                "value=" + value +
-                '}';
+        return "FloatToByte("
+                + value
+                + ')';
     }
 }

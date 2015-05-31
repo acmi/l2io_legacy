@@ -67,9 +67,9 @@ public class Case extends Token {
 
     @Override
     public String toString() {
-        return "Case{" +
-                "index=" + index +
-                ", value=" + value +
-                '}';
+        return "Case("
+                + index
+                + "," + value
+                + ')';
     }
 }

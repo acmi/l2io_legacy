@@ -125,11 +125,10 @@ class BytecodeInputWrapper implements BytecodeInput {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int b;
         do {
-            b = readUnsignedByte();
+            b = readUnsignedByte();  //(size here)
             baos.write(b);
         } while (b != 0);
         String s = baos.toString(getCharset().name());
-        //size += s.length();
         return s.substring(0, s.length() - 1);
     }
 

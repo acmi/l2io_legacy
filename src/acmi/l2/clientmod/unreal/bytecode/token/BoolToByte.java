@@ -56,8 +56,8 @@ public class BoolToByte extends Token {
 
     @Override
     public String toString() {
-        return "BoolToByte{" +
-                "value=" + value +
-                '}';
+        return "BoolToByte("
+                + value
+                + ')';
     }
 }

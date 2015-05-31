@@ -56,8 +56,8 @@ public class BoolToFloat extends Token {
 
     @Override
     public String toString() {
-        return "BoolToFloat{" +
-                "value=" + value +
-                '}';
+        return "BoolToFloat("
+                + value
+                + ')';
     }
 }

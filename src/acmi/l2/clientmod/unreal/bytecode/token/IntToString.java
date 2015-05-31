@@ -56,8 +56,8 @@ public class IntToString extends Token {
 
     @Override
     public String toString() {
-        return "IntToString{" +
-                "value=" + value +
-                '}';
+        return "IntToString("
+                + value
+                + ')';
     }
 }

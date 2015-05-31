@@ -56,8 +56,8 @@ public class IntToFloat extends Token {
 
     @Override
     public String toString() {
-        return "IntToFloat{" +
-                "value=" + value +
-                '}';
+        return "IntToFloat("
+                + value
+                + ')';
     }
 }

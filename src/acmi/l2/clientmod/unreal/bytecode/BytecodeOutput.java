@@ -37,8 +37,9 @@ public interface BytecodeOutput extends DataOutput {
     int getSize();
 
     default void writeFunctionParams(Token[] params) throws IOException {
-        for (Token token : params)
-            token.writeTo(this);
+        if (params != null)
+            for (Token token : params)
+                token.writeTo(this);
         EndFunctionParams.INSTANCE.writeTo(this);
     }
 }

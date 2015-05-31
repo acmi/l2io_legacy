@@ -56,8 +56,8 @@ public class INT64ToString extends Token {
 
     @Override
     public String toString() {
-        return "StructToString{" +
-                "value=" + value +
-                '}';
+        return "INT64ToString("
+                + value
+                + ')';
     }
 }

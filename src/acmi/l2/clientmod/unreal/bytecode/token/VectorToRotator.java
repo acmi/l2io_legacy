@@ -56,8 +56,8 @@ public class VectorToRotator extends Token {
 
     @Override
     public String toString() {
-        return "VectorToRotator{" +
-                "value=" + value +
-                '}';
+        return "VectorToRotator("
+                + value
+                + ')';
     }
 }

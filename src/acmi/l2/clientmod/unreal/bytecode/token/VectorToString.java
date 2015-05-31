@@ -56,8 +56,8 @@ public class VectorToString extends Token {
 
     @Override
     public String toString() {
-        return "VectorToString{" +
-                "value=" + value +
-                '}';
+        return "VectorToString("
+                + value
+                + ')';
     }
 }

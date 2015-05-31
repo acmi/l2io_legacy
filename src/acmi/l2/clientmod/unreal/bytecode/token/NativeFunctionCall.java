@@ -6,6 +6,8 @@ import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class NativeFunctionCall extends Token {
     private final int nativeIndex;
@@ -46,8 +48,9 @@ public class NativeFunctionCall extends Token {
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        for (Token param : params)
-            param.writeTo(output);
+        if (params != null)
+            for (Token param : params)
+                param.writeTo(output);
         EndFunctionParams.INSTANCE.writeTo(output);
     }
 
@@ -75,9 +78,9 @@ public class NativeFunctionCall extends Token {
 
     @Override
     public String toString() {
-        return "NativeFunctionCall{" +
-                "nativeIndex=" + nativeIndex +
-                ", params=" + Arrays.toString(params) +
-                '}';
+        return "NativeFunctionCall("
+                + nativeIndex
+                + (params == null || params.length == 0 ? "" : ", " + Arrays.stream(params).map(Objects::toString).collect(Collectors.joining(", ")))
+                + ')';
     }
 }

@@ -56,8 +56,8 @@ public class ObjectToString extends Token {
 
     @Override
     public String toString() {
-        return "ObjectToString{" +
-                "value=" + value +
-                '}';
+        return "ObjectToString("
+                + value
+                + ')';
     }
 }

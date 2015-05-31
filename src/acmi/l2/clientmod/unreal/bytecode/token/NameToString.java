@@ -56,8 +56,8 @@ public class NameToString extends Token {
 
     @Override
     public String toString() {
-        return "NameToString{" +
-                "value=" + value +
-                '}';
+        return "NameToString("
+                + value
+                + ')';
     }
 }

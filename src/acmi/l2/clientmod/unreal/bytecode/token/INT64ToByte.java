@@ -26,17 +26,17 @@ import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
 import java.io.IOException;
 
-public class Skip extends Token {
-    public static final int OPCODE = 0x18;
+public class INT64ToByte extends Token {
+    public static final int OPCODE = 0x5f;
 
-    private final int targetOffset;
+    private final Token value;
 
-    public Skip(int targetOffset) {
-        this.targetOffset = targetOffset;
+    public INT64ToByte(Token value) {
+        this.value = value;
     }
 
-    public static Skip readFrom(BytecodeInput input) throws IOException {
-        return new Skip(input.readUnsignedShort());
+    public static INT64ToByte readFrom(BytecodeInput input) throws IOException {
+        return new INT64ToByte(input.readToken());
     }
 
     @Override
@@ -44,20 +44,20 @@ public class Skip extends Token {
         return OPCODE;
     }
 
-    public int getTargetOffset() {
-        return targetOffset;
+    public Token getValue() {
+        return value;
     }
 
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        output.writeShort(targetOffset);
+        output.writeToken(value);
     }
 
     @Override
     public String toString() {
-        return "Skip("
-                + targetOffset
+        return "INT64ToByte("
+                + value
                 + ')';
     }
 }

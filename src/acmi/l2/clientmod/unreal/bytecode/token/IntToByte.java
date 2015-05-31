@@ -56,8 +56,8 @@ public class IntToByte extends Token {
 
     @Override
     public String toString() {
-        return "IntToByte{" +
-                "value=" + value +
-                '}';
+        return "IntToByte("
+                + value
+                + ')';
     }
 }

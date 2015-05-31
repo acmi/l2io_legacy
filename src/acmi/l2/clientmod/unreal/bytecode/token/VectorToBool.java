@@ -56,8 +56,8 @@ public class VectorToBool extends Token {
 
     @Override
     public String toString() {
-        return "VectorToBool{" +
-                "value=" + value +
-                '}';
+        return "VectorToBool("
+                + value
+                + ')';
     }
 }

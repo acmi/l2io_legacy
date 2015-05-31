@@ -6,17 +6,14 @@ import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.bytecode.token.*;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class BytecodeUtil {
-    private static final Logger log = Logger.getLogger(BytecodeUtil.class.getName());
-
     private static final int EX_ExtendedNative = 0x60;
     private static final int EX_FirstNative = 0x70;
 
@@ -42,66 +39,71 @@ public class BytecodeUtil {
         return new BytecodeOutputWrapper(output, noneInd);
     }
 
-    public List<Token> readTokens(DataInput input, int scriptSize) throws UnrealException {
+    public List<Token> readTokens(DataInput input, int scriptSize) throws IOException {
+        BytecodeInput wrapper = createBytecodeInput(input);
+
         List<Token> tokens = new ArrayList<>();
-        try {
-            BytecodeInput wrapper = createBytecodeInput(input);
-            while (wrapper.getSize() < scriptSize) {
-                log.fine(() -> String.format("\t%d/%d", wrapper.getSize(), scriptSize));
-                Token token = readToken(wrapper);
-                log.fine(() -> String.format("\t%s", token));
-                tokens.add(token);
-            }
-        } catch (Exception e) {
-            throw new UnrealException(e);
+        while (wrapper.getSize() < scriptSize) {
+            tokens.add(readToken(wrapper));
         }
+
         return tokens;
     }
 
     private Token readToken(BytecodeInput input) throws IOException {
         int opcode = input.readUnsignedByte();
-        Method constructor = table.get(opcode);
-        if (opcode >= EX_ExtendedNative && constructor == null)
+        Method constructorMethod = table.get(opcode);
+
+        if (opcode >= EX_ExtendedNative && constructorMethod == null)
             return readNativeCall(input, opcode);
-        if (constructor == null)
-            throw new IOException(String.format("Unknown token: %02x, table: %s", opcode, table == mainTokenTable ? "mainTokenTable" : "conversionTokenTable"));
+
+        if (constructorMethod == null)
+            throw new IOException(String.format("Unknown token: %02x, table: %s", opcode, table == mainTokenTable ? "Main" : "Conversion"));
+
+        System.out.println("\t" + constructorMethod.getDeclaringClass().getSimpleName());
+
         Token token;
         try {
             if (opcode == ConversionTable.OPCODE) {
                 table = conversionTokenTable;
-                token = (Token) constructor.invoke(null, input);
+                token = (Token) constructorMethod.invoke(null, input);
                 table = mainTokenTable;
             } else {
-                token = (Token) constructor.invoke(null, input);
+                token = (Token) constructorMethod.invoke(null, input);
             }
-        } catch (Exception e) {
-            throw new IllegalStateException("Read token error", e);
+        } catch (IllegalAccessException | IllegalArgumentException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            Throwable targetException = e.getTargetException();
+            if (targetException instanceof IOException)
+                throw (IOException) targetException;
+            throw new UnrealException("Read token error", targetException);
         }
-        log.fine(() -> String.format("\t\t%s", token));
         return token;
     }
 
     private Token readNativeCall(BytecodeInput input, int b) throws IOException {
-        int nativeIndex;
-        if ((b & 0xF0) == EX_ExtendedNative) {
-            nativeIndex = ((b - EX_ExtendedNative) << 8) + input.readUnsignedByte();
-        } else {
-            nativeIndex = b;
-        }
+        int nativeIndex = (b & 0xF0) == EX_ExtendedNative ?
+                ((b - EX_ExtendedNative) << 8) + input.readUnsignedByte() : b;
+
         if (nativeIndex < EX_FirstNative)
-            throw new IllegalStateException("Invalid native index " + nativeIndex + " b=" + b);
+            throw new UnrealException("Invalid native index: " + nativeIndex);
+
         return NativeFunctionCall.readFrom(input, nativeIndex);
     }
 
-    public int writeTokens(DataOutput output, List<Token> tokens) throws UnrealException {
-        try {
-            BytecodeOutputWrapper wrapper = new BytecodeOutputWrapper(output, noneInd);
-            for (Token token : tokens)
-                wrapper.writeToken(token);
-            return wrapper.getSize();
-        } catch (Exception e) {
-            throw new UnrealException(e);
-        }
+    public int writeTokens(DataOutput output, Token... tokens) throws IOException {
+        BytecodeOutputWrapper wrapper = new BytecodeOutputWrapper(output, noneInd);
+        for (Token token : tokens)
+            wrapper.writeToken(token);
+        return wrapper.getSize();
+    }
+
+    public int writeTokens(DataOutput output, Iterable<Token> tokens) throws IOException {
+        BytecodeOutputWrapper wrapper = new BytecodeOutputWrapper(output, noneInd);
+        for (Token token : tokens)
+            wrapper.writeToken(token);
+        return wrapper.getSize();
     }
 
     static {
@@ -196,10 +198,15 @@ public class BytecodeUtil {
 
         conversionTokenTable.putAll(mainTokenTable);
         register(BoolToInt.class, conversionTokenTable);         //41
+
+        register(ByteToINT64.class, conversionTokenTable);       //5a
         register(IntToINT64.class, conversionTokenTable);        //5b
         register(BoolToINT64.class, conversionTokenTable);       //5c
+        register(FloatToINT64.class, conversionTokenTable);      //5d
         register(StringToINT64.class, conversionTokenTable);     //5e
+        register(INT64ToByte.class, conversionTokenTable);       //5f
         register(INT64ToInt.class, conversionTokenTable);        //60
+        register(INT64ToBool.class, conversionTokenTable);       //61
         register(INT64ToFloat.class, conversionTokenTable);      //62
         register(INT64ToString.class, conversionTokenTable);     //63
     }
@@ -208,7 +215,7 @@ public class BytecodeUtil {
         try {
             map.put(clazz.getDeclaredField("OPCODE").getInt(null), clazz.getDeclaredMethod("readFrom", BytecodeInput.class));
         } catch (ReflectiveOperationException e) {
-            log.log(Level.WARNING, e, () -> String.format("Couldn't register %s opcode", clazz));
+            throw new RuntimeException(String.format("Couldn't register %s opcode", clazz), e);
         }
     }
 }

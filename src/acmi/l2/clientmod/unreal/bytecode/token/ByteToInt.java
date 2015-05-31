@@ -56,8 +56,8 @@ public class ByteToInt extends Token {
 
     @Override
     public String toString() {
-        return "ByteToInt{" +
-                "value=" + value +
-                '}';
+        return "ByteToInt("
+                + value
+                + ')';
     }
 }

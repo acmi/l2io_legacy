@@ -56,8 +56,8 @@ public class BoolToINT64 extends Token {
 
     @Override
     public String toString() {
-        return "BoolToINT64{" +
-                "wrappedToken=" + wrappedToken +
-                '}';
+        return "BoolToINT64("
+                + wrappedToken
+                + ')';
     }
 }

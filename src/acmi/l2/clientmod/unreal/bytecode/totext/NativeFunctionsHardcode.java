@@ -277,6 +277,7 @@ public class NativeFunctionsHardcode implements NativeFunctionsSupplier {
 
     @Override
     public NativeFunction apply(Integer integer) throws UnrealException {
-        return Optional.ofNullable(NATIVE_FUNCTIONS.get(integer)).orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
+        return Optional.ofNullable(NATIVE_FUNCTIONS.get(integer))
+                .orElseThrow(() -> new UnrealException(String.format("Native function (%d) not found", integer)));
     }
 }

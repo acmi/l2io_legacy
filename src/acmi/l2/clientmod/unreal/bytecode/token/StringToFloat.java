@@ -56,8 +56,8 @@ public class StringToFloat extends Token {
 
     @Override
     public String toString() {
-        return "StringToFloat{" +
-                "value=" + value +
-                '}';
+        return "StringToFloat("
+                + value
+                + ')';
     }
 }

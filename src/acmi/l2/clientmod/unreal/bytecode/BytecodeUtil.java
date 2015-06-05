@@ -155,45 +155,44 @@ public class BytecodeUtil {
         register(StructCmpEq.class, mainTokenTable);       //32
         register(StructCmpNe.class, mainTokenTable);       //33
 
-
         register(StructMember.class, mainTokenTable);      //36
         register(Length.class, mainTokenTable);            //37
         register(GlobalFunction.class, mainTokenTable);    //38
         register(ConversionTable.class, mainTokenTable);   //39
-        register(ByteToInt.class, mainTokenTable);         //3a
-        register(ByteToBool.class, mainTokenTable);        //3b
-        register(ByteToFloat.class, mainTokenTable);       //3c
-        register(IntToByte.class, mainTokenTable);         //3d
-        register(IntToBool.class, mainTokenTable);         //3e
-        register(IntToFloat.class, mainTokenTable);        //3f
-        register(BoolToByte.class, mainTokenTable);        //40
+        register(Insert.class, mainTokenTable);            //40
         register(Remove.class, mainTokenTable);            //41
-        register(BoolToFloat.class, mainTokenTable);       //42
-        register(FloatToByte.class, mainTokenTable);       //43
         register(DelegateName.class, mainTokenTable);      //44
-        register(FloatToBool.class, mainTokenTable);       //45
-
-
-        register(StringToInt.class, mainTokenTable);       //4a
-        register(StringToBool.class, mainTokenTable);      //4b
-        register(StringToFloat.class, mainTokenTable);     //4c
-        register(StringToVector.class, mainTokenTable);    //4d
-        register(StringToRotator.class, mainTokenTable);   //4e
-        register(VectorToBool.class, mainTokenTable);      //4f
-        register(VectorToRotator.class, mainTokenTable);   //50
-        register(RotatorToBool.class, mainTokenTable);     //51
-        register(ByteToString.class, mainTokenTable);      //52
-        register(IntToString.class, mainTokenTable);       //53
-        register(BoolToString.class, mainTokenTable);      //54
-        register(FloatToString.class, mainTokenTable);     //55
-        register(ObjectToString.class, mainTokenTable);    //56
-        register(NameToString.class, mainTokenTable);      //57
-        register(VectorToString.class, mainTokenTable);    //58
-        register(RotatorToString.class, mainTokenTable);   //59
 
         conversionTokenTable.putAll(mainTokenTable);
+        register(ByteToInt.class, conversionTokenTable);         //3a
+        register(ByteToBool.class, conversionTokenTable);        //3b
+        register(ByteToFloat.class, conversionTokenTable);       //3c
+        register(IntToByte.class, conversionTokenTable);         //3d
+        register(IntToBool.class, conversionTokenTable);         //3e
+        register(IntToFloat.class, conversionTokenTable);        //3f
+        register(BoolToByte.class, conversionTokenTable);        //40
         register(BoolToInt.class, conversionTokenTable);         //41
+        register(BoolToFloat.class, conversionTokenTable);       //42
+        register(FloatToByte.class, conversionTokenTable);       //43
         register(FloatToInt.class, conversionTokenTable);        //44
+        register(FloatToBool.class, conversionTokenTable);       //45
+
+        register(StringToInt.class, conversionTokenTable);       //4a
+        register(StringToBool.class, conversionTokenTable);      //4b
+        register(StringToFloat.class, conversionTokenTable);     //4c
+        register(StringToVector.class, conversionTokenTable);    //4d
+        register(StringToRotator.class, conversionTokenTable);   //4e
+        register(VectorToBool.class, conversionTokenTable);      //4f
+        register(VectorToRotator.class, conversionTokenTable);   //50
+        register(RotatorToBool.class, conversionTokenTable);     //51
+        register(ByteToString.class, conversionTokenTable);      //52
+        register(IntToString.class, conversionTokenTable);       //53
+        register(BoolToString.class, conversionTokenTable);      //54
+        register(FloatToString.class, conversionTokenTable);     //55
+        register(ObjectToString.class, conversionTokenTable);    //56
+        register(NameToString.class, conversionTokenTable);      //57
+        register(VectorToString.class, conversionTokenTable);    //58
+        register(RotatorToString.class, conversionTokenTable);   //59
 
         register(ByteToINT64.class, conversionTokenTable);       //5a
         register(IntToINT64.class, conversionTokenTable);        //5b

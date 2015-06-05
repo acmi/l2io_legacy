@@ -53,24 +53,20 @@ public class BytecodeUtil {
     private Token readToken(BytecodeInput input) throws IOException {
         int opcode = input.readUnsignedByte();
         Method constructorMethod = table.get(opcode);
+        boolean main = table == mainTokenTable;
+        table = mainTokenTable;
 
         if (opcode >= EX_ExtendedNative && constructorMethod == null)
             return readNativeCall(input, opcode);
 
         if (constructorMethod == null)
-            throw new IOException(String.format("Unknown token: %02x, table: %s", opcode, table == mainTokenTable ? "Main" : "Conversion"));
+            throw new IOException(String.format("Unknown token: %02x, table: %s", opcode, main ? "Main" : "Conversion"));
 
-        System.out.println("\t" + constructorMethod.getDeclaringClass().getSimpleName());
+        if (opcode == ConversionTable.OPCODE)
+            table = conversionTokenTable;
 
-        Token token;
         try {
-            if (opcode == ConversionTable.OPCODE) {
-                table = conversionTokenTable;
-                token = (Token) constructorMethod.invoke(null, input);
-                table = mainTokenTable;
-            } else {
-                token = (Token) constructorMethod.invoke(null, input);
-            }
+            return (Token) constructorMethod.invoke(null, input);
         } catch (IllegalAccessException | IllegalArgumentException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
@@ -79,7 +75,6 @@ public class BytecodeUtil {
                 throw (IOException) targetException;
             throw new UnrealException("Read token error", targetException);
         }
-        return token;
     }
 
     private Token readNativeCall(BytecodeInput input, int b) throws IOException {
@@ -175,7 +170,7 @@ public class BytecodeUtil {
         register(Remove.class, mainTokenTable);            //41
         register(BoolToFloat.class, mainTokenTable);       //42
         register(FloatToByte.class, mainTokenTable);       //43
-        register(FloatToInt.class, mainTokenTable);        //44
+        register(DelegateName.class, mainTokenTable);      //44
         register(FloatToBool.class, mainTokenTable);       //45
 
 
@@ -198,6 +193,7 @@ public class BytecodeUtil {
 
         conversionTokenTable.putAll(mainTokenTable);
         register(BoolToInt.class, conversionTokenTable);         //41
+        register(FloatToInt.class, conversionTokenTable);        //44
 
         register(ByteToINT64.class, conversionTokenTable);       //5a
         register(IntToINT64.class, conversionTokenTable);        //5b

@@ -52,12 +52,12 @@ class BytecodeOutputWrapper implements BytecodeOutput {
 
     @Override
     public void write(byte[] b) throws IOException {
-        throw new UnsupportedOperationException();
+        output.write(b);
     }
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        throw new UnsupportedOperationException();
+        output.write(b, off, len);
     }
 
     @Override
@@ -107,14 +107,14 @@ class BytecodeOutputWrapper implements BytecodeOutput {
 
     @Override
     public void writeLine(String s) throws IOException {
-        byte[] bytes = (s + '\0').getBytes(getCharset());
-        write(bytes);
-        size += bytes.length;
+        writeBytes(s);
     }
 
     @Override
     public void writeBytes(String s) throws IOException {
-        throw new UnsupportedOperationException();
+        byte[] bytes = (s + '\0').getBytes(getCharset());
+        write(bytes);
+        size += bytes.length;
     }
 
     @Override

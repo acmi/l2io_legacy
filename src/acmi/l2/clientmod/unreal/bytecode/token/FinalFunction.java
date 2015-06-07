@@ -21,8 +21,10 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
+import acmi.l2.clientmod.io.annotation.Compact;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+import acmi.l2.clientmod.unreal.bytecode.token.annotation.FunctionParams;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,7 +34,9 @@ import java.util.stream.Collectors;
 public class FinalFunction extends Token {
     public static final int OPCODE = 0x1c;
 
+    @Compact
     private final int funcRef;
+    @FunctionParams
     private final Token[] params;
 
     public FinalFunction(int funcRef, Token... params) {

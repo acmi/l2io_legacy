@@ -21,8 +21,10 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
+import acmi.l2.clientmod.io.annotation.Compact;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+import acmi.l2.clientmod.unreal.bytecode.token.annotation.FunctionParams;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,10 +34,12 @@ import java.util.stream.Collectors;
 public class VirtualFunction extends Token {
     public static final int OPCODE = 0x1b;
 
+    @Compact
     private final int nameRef;
+    @FunctionParams
     private final Token[] params;
 
-    public VirtualFunction(int nameRef, Token[] params) {
+    public VirtualFunction(int nameRef, Token... params) {
         this.nameRef = nameRef;
         this.params = params;
     }

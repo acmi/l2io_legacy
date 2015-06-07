@@ -19,47 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package acmi.l2.clientmod.unreal.bytecode.token;
+package acmi.l2.clientmod.io.annotation;
 
-import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
-import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
-import acmi.l2.clientmod.unreal.bytecode.token.annotation.ConversionToken;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.io.IOException;
-
-@ConversionToken
-public class VectorToRotator extends Token {
-    public static final int OPCODE = 0x50;
-
-    private final Token value;
-
-    public VectorToRotator(Token value) {
-        this.value = value;
-    }
-
-    public static VectorToRotator readFrom(BytecodeInput input) throws IOException {
-        return new VectorToRotator(input.readToken());
-    }
-
-    @Override
-    protected int getOpcode() {
-        return OPCODE;
-    }
-
-    public Token getValue() {
-        return value;
-    }
-
-    @Override
-    public void writeTo(BytecodeOutput output) throws IOException {
-        super.writeTo(output);
-        output.writeToken(value);
-    }
-
-    @Override
-    public String toString() {
-        return "VectorToRotator("
-                + value
-                + ')';
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD})
+public @interface UByte {
 }

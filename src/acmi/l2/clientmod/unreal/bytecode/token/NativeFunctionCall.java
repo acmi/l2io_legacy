@@ -1,8 +1,10 @@
 package acmi.l2.clientmod.unreal.bytecode.token;
 
 import acmi.l2.clientmod.io.DataOutput;
+import acmi.l2.clientmod.io.annotation.Compact;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+import acmi.l2.clientmod.unreal.bytecode.token.annotation.FunctionParams;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -10,7 +12,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class NativeFunctionCall extends Token {
+    @Compact
     private final int nativeIndex;
+    @FunctionParams
     private final Token[] params;
 
     public NativeFunctionCall(int nativeIndex, Token... params) {
@@ -48,10 +52,7 @@ public class NativeFunctionCall extends Token {
     @Override
     public void writeTo(BytecodeOutput output) throws IOException {
         super.writeTo(output);
-        if (params != null)
-            for (Token param : params)
-                param.writeTo(output);
-        EndFunctionParams.INSTANCE.writeTo(output);
+        output.writeFunctionParams(params);
     }
 
 //    @Override

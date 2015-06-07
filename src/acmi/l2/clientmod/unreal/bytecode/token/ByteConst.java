@@ -21,6 +21,7 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
+import acmi.l2.clientmod.io.annotation.UByte;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -29,6 +30,7 @@ import java.io.IOException;
 public class ByteConst extends Token {
     public static final int OPCODE = 0x24;
 
+    @UByte
     private final int value;
 
     public ByteConst(int value) {

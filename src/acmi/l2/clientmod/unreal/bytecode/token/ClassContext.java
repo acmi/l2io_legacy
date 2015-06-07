@@ -21,6 +21,8 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
+import acmi.l2.clientmod.io.annotation.UByte;
+import acmi.l2.clientmod.io.annotation.UShort;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -30,7 +32,9 @@ public class ClassContext extends Token {
     public static final int OPCODE = 0x12;
 
     private final Token token1;
+    @UShort
     private final int wSkip;
+    @UByte
     private final int bSize;
     private final Token token2;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 acmi
+ * Copyright (c) 2015 acmi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * Entry properties:
@@ -69,12 +68,8 @@ public class PropertiesUtil {
     public List<L2Property> readProperties(DataInput dataInput, String objClass, UnrealPackageReadOnly up) throws UnrealException {
         List<L2Property> properties = new ArrayList<>();
 
-        List<Property> classTemplate = unrealClassLoader.getStructFieldsQuetly(objClass)
-                .orElse(new ArrayList<>())
-                .stream()
-                .filter(field -> field instanceof Property)
-                .map(field -> (Property) field)
-                .collect(Collectors.toCollection(ArrayList::new));
+        List<Property> classTemplate = unrealClassLoader.getStructProperties(objClass);
+
         Collections.reverse(classTemplate);
 
         try {
@@ -175,7 +170,7 @@ public class PropertiesUtil {
                 List<Object> arrayList = new ArrayList<>(arraySize);
 
                 String a = arrayInner.getObjectClass().getObjectName().getName();
-                Property f = (Property) unrealClassLoader.getOrLoadField(arrayInner);
+                Property f = unrealClassLoader.getProperty(arrayInner.getObjectFullName());
 
                 array = false;
                 arrayInner = null;
@@ -222,12 +217,7 @@ public class PropertiesUtil {
     }
 
     public List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws UnrealException {
-        List<Property> properties = unrealClassLoader.getStructFieldsQuetly(structName)
-                .orElseThrow(() -> new IllegalStateException(structName + " not found"))
-                .stream()
-                .filter(f -> f instanceof Property)
-                .map(f -> (Property) f)
-                .collect(Collectors.toList());
+        List<Property> properties = unrealClassLoader.getStructProperties(structName);
 
         try {
             switch (structName) {

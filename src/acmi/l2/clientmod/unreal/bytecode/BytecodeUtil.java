@@ -32,7 +32,7 @@ public class BytecodeUtil {
     }
 
     public BytecodeInput createBytecodeInput(DataInput input) {
-        return new BytecodeInputWrapper(input, noneInd, this::readToken);
+        return new BytecodeInputWrapper(input, getNoneInd(), this::readToken);
     }
 
     public BytecodeOutput createBytecodeOutput(DataOutput output) {

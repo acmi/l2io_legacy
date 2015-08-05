@@ -21,7 +21,6 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
-import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
 import java.io.IOException;
@@ -29,7 +28,7 @@ import java.io.IOException;
 public abstract class Token {
     protected abstract int getOpcode();
 
-    protected void writeOpcode(DataOutput output, int opcode) throws IOException {
+    protected void writeOpcode(BytecodeOutput output, int opcode) throws IOException {
         output.writeByte(opcode);
     }
 

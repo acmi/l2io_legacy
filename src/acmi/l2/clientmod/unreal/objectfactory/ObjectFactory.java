@@ -27,7 +27,6 @@ import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 import acmi.l2.clientmod.unreal.classloader.UnrealClassLoader;
-import acmi.l2.clientmod.unreal.core.Field;
 import acmi.l2.clientmod.unreal.core.Object;
 
 import java.io.ByteArrayInputStream;
@@ -53,9 +52,10 @@ public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry
 
     @Override
     public Object apply(UnrealPackageReadOnly.ExportEntry entry) throws UnrealException {
-        java.lang.Class<? extends Object> clazz = null;
-        if (entry.getObjectClass() == null || Field.class.isAssignableFrom(clazz = getClass(entry.getObjectClass().getObjectFullName())))
-            throw new IllegalArgumentException(String.format("%s can only be loaded from classpath, use %s", entry.getObjectClass() == null ? "Class" : clazz.getSimpleName(), UnrealClassLoader.class.getSimpleName()));
+        if (entry.getObjectClass() == null)
+            throw new IllegalArgumentException(String.format("Class can only be loaded from classpath, use %s", UnrealClassLoader.class.getSimpleName()));
+
+        java.lang.Class<? extends Object> clazz = getClass(entry.getObjectClass().getObjectFullName());
 
         try {
             Constructor<? extends Object> constructor = clazz.getConstructor(DataInput.class, UnrealPackageReadOnly.ExportEntry.class, PropertiesUtil.class);

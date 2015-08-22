@@ -22,6 +22,7 @@
 package acmi.l2.clientmod.unreal.objectfactory;
 
 import acmi.l2.clientmod.io.DataInput;
+import acmi.l2.clientmod.io.DataOutput;
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
 import acmi.l2.clientmod.unreal.classloader.PropertiesUtil;
 
@@ -35,6 +36,13 @@ public class AsIsObject extends acmi.l2.clientmod.unreal.core.Object {
 
         body = new byte[entry.getOffset() + entry.getSize() - input.getPosition()];
         input.readFully(body);
+    }
+
+    @Override
+    public void writeTo(DataOutput output, PropertiesUtil propertiesUtil) throws IOException {
+        super.writeTo(output, propertiesUtil);
+
+        output.write(body);
     }
 
     public byte[] getBody() {

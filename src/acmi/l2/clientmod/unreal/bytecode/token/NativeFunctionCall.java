@@ -32,7 +32,7 @@ public class NativeFunctionCall extends Token {
     }
 
     @Override
-    protected void writeOpcode(DataOutput output, int opcode) throws IOException {
+    protected void writeOpcode(BytecodeOutput output, int opcode) throws IOException {
         if (opcode > 0xff) {
             output.writeByte(0x60 + ((opcode >> 8) & 0x0f));
             output.writeByte(opcode & 0xff);

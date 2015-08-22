@@ -32,12 +32,11 @@ import java.lang.Class;
 import java.lang.Object;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 /**
  * Entry properties:
@@ -70,34 +69,34 @@ public class PropertiesUtil {
 
         List<Property> classTemplate = unrealClassLoader.getStructProperties(objClass);
 
-        Collections.reverse(classTemplate);
-
         try {
             String name;
             while (!(name = up.getNameTable().get(dataInput.readCompactInt()).getName()).equals("None")) {
                 int info = dataInput.readUnsignedByte();
-                Type propertyType = Type.values()[info & 0b1111];
+                int propertyType = info & 0b1111;
                 int sizeType = (info >> 4) & 0b111;
                 boolean array = info >> 7 == 1;
 
-                String structName = propertyType.equals(Type.STRUCT) ?
+                String structName = propertyType == STRUCT ?
                         up.getNameTable().get(dataInput.readCompactInt()).getName() : null;
                 int size = readPropertySize(sizeType, dataInput);
-                int arrayIndex = array && !propertyType.equals(Type.BOOL) ? dataInput.readCompactInt() : 0;
+                int arrayIndex = array && propertyType != BOOL ? dataInput.readCompactInt() : 0;
 
                 byte[] objBytes = new byte[size];
                 dataInput.readFully(objBytes);
 
                 final String n = name;
-                PropertiesUtil.getAt(properties, n);
-                L2Property property = PropertiesUtil.getAt(properties, n);
+                Predicate<Property> pr = pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase(n) &&
+                        propertyType == getTypeOfProperty(pt.getClass());
+                L2Property property = properties.stream()
+                        .filter(p -> pr.test(p.getTemplate()))
+                        .findAny()
+                        .orElse(null);
                 if (property == null) {
                     Property template = classTemplate.stream()
-                            .filter(pt -> pt.getEntry().getObjectName().getName().equalsIgnoreCase((n)))
+                            .filter(pr::test)
                             .findAny()
-                            .orElse(null);
-                    if (template == null)
-                        throw new UnrealException(objClass + ": Property template not found: " + name);
+                            .orElseThrow(() -> new UnrealException(objClass + ": Property template not found: " + n));
 
                     property = new L2Property(template, up);
                     properties.add(property);
@@ -110,11 +109,9 @@ public class PropertiesUtil {
                     StructProperty structProperty = (StructProperty) property.getTemplate();
                     structName = structProperty.getStructType().getObjectFullName();
                 }
-                UnrealPackageReadOnly.ExportEntry arrayInner = null;
-                if (propertyType.equals(Type.ARRAY)) {
-                    ArrayProperty arrayProperty = (ArrayProperty) property.getTemplate();
-                    arrayInner = (UnrealPackageReadOnly.ExportEntry) arrayProperty.getInner();
-                }
+                Property arrayInner = property.getTemplate() instanceof ArrayProperty ?
+                        unrealClassLoader.getProperty(((ArrayProperty) property.getTemplate()).getInner().getObjectFullName()) :
+                        null;
 
                 DataInput objBuffer = new DataInputStream(new ByteArrayInputStream(objBytes), dataInput.getCharset());
                 property.putAt(arrayIndex, read(objBuffer, propertyType, array, arrayInner, structName, up));
@@ -149,7 +146,7 @@ public class PropertiesUtil {
         }
     }
 
-    private Object read(DataInput objBuffer, Type propertyType, boolean array, UnrealPackageReadOnly.ExportEntry arrayInner, String structName, UnrealPackageReadOnly up) throws IOException {
+    private Object read(DataInput objBuffer, int propertyType, boolean array, Property arrayInner, String structName, UnrealPackageReadOnly up) throws IOException {
         switch (propertyType) {
             case NONE:
                 return null;
@@ -169,22 +166,13 @@ public class PropertiesUtil {
                 int arraySize = objBuffer.readCompactInt();
                 List<Object> arrayList = new ArrayList<>(arraySize);
 
-                String a = arrayInner.getObjectClass().getObjectName().getName();
-                Property f = unrealClassLoader.getProperty(arrayInner.getObjectFullName());
-
-                array = false;
-                arrayInner = null;
-                structName = null;
-                propertyType = Type.valueOf(a.replace("Property", "").toUpperCase());
-                if (propertyType == Type.STRUCT) {
-                    StructProperty structProperty = (StructProperty) f;
-                    structName = structProperty.getStructType().getObjectFullName();
-                }
-                if (propertyType == Type.ARRAY) {
-                    array = true;
-                    ArrayProperty arrayProperty = (ArrayProperty) f;
-                    arrayInner = (UnrealPackageReadOnly.ExportEntry) arrayProperty.getInner();
-                }
+                String a = arrayInner.getEntry().getObjectFullName();
+                propertyType = getTypeOfProperty(arrayInner.getClass());
+                structName = propertyType == STRUCT ? Optional
+                        .ofNullable(((StructProperty) arrayInner).getStructType())
+                        .orElseThrow(() -> new UnrealException(a + ": null struct ref")).getObjectFullName() : null;
+                array = propertyType == ARRAY;
+                arrayInner = propertyType == ARRAY ? unrealClassLoader.getProperty(((ArrayProperty) arrayInner).getInner().getObjectFullName()) : null;
 
                 for (int i = 0; i < arraySize; i++) {
                     arrayList.add(read(objBuffer, propertyType, array, arrayInner, structName, up));
@@ -192,10 +180,6 @@ public class PropertiesUtil {
                 return arrayList;
             case STRUCT:
                 return readStruct(objBuffer, structName, up);
-            /*case VECTOR:
-                return readStruct(objBuffer, "Vector", up);
-            case ROTATOR:
-                return readStruct(objBuffer, "Rotator", up);*/
             case STR:
                 return objBuffer.readLine();
             default:
@@ -289,19 +273,18 @@ public class PropertiesUtil {
 
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     DataOutput objBuffer = new DataOutputStream(baos, buffer.getCharset());
-                    AtomicBoolean array = new AtomicBoolean(i > 0);
-                    AtomicReference<String> structName = new AtomicReference<>();
-                    AtomicReference<Type> type = new AtomicReference<>(Type.valueOf(template.getClass().getSimpleName().replace("Property", "").toUpperCase()));
-                    write(objBuffer, template, obj, array, structName, type, up);
+                    write(objBuffer, template, obj, up);
                     byte[] bytes = baos.toByteArray();
 
+                    int type = getTypeOfProperty(template.getClass());
                     int size = getPropertySize(bytes.length);
-                    int info = (array.get() ? 1 << 7 : 0) | (size << 4) | type.get().ordinal();
+                    boolean array = (i > 0) || (type == ARRAY && ((Boolean)obj));
+                    int info = (array ? 1 << 7 : 0) | (size << 4) | type;
 
                     buffer.writeCompactInt(up.nameReference(template.getEntry().getObjectName().getName()));
                     buffer.writeByte(info);
-                    if (type.get() == Type.STRUCT)
-                        buffer.writeCompactInt(up.nameReference(structName.get()));
+                    if (type == STRUCT)
+                        buffer.writeCompactInt(up.nameReference(((StructProperty)template).getStructType().getObjectName().getName()));
                     switch (size) {
                         case 5:
                             buffer.writeByte(bytes.length);
@@ -324,13 +307,11 @@ public class PropertiesUtil {
         }
     }
 
-    private void write(DataOutput objBuffer, Property template, Object obj, AtomicBoolean array, AtomicReference<String> structName, AtomicReference<Type> type, UnrealPackageReadOnly up) throws IOException {
+    private void write(DataOutput objBuffer, Property template, Object obj, UnrealPackageReadOnly up) throws IOException {
         if (template instanceof ByteProperty) {
             objBuffer.writeByte((Integer) obj);
         } else if (template instanceof IntProperty) {
             objBuffer.writeInt((Integer) obj);
-        } else if (template instanceof BoolProperty) {
-            array.set((Boolean) obj);
         } else if (template instanceof FloatProperty) {
             objBuffer.writeFloat((Float) obj);
         } else if (template instanceof ObjectProperty) {
@@ -351,25 +332,14 @@ public class PropertiesUtil {
                         .newInstance(ByteBuffer.wrap(arrayInner.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN), arrayInner, this);
 
                 for (Object arrayObj : arrayList) {
-                    write(objBuffer, f, arrayObj, new AtomicBoolean(), new AtomicReference<>(), new AtomicReference<>(), up);
+                    write(objBuffer, f, arrayObj, up);
                 }
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
         } else if (template instanceof StructProperty) {
             StructProperty structProperty = (StructProperty) template;
-            structName.set(structProperty.getStructType().getObjectName().getName());
-            writeStruct(objBuffer, structName.get(), up, (List<L2Property>) obj);
-            if (false) { //Not used in L2?
-                switch (structName.get()) {
-                    case "Vector":
-                        type.set(Type.VECTOR);
-                        break;
-                    case "Rotator":
-                        type.set(Type.ROTATOR);
-                        break;
-                }
-            }
+            writeStruct(objBuffer, structProperty.getStructType().getObjectName().getName(), up, (List<L2Property>) obj);
         } else if (template instanceof StrProperty) {
             objBuffer.writeLine((String) obj);
         } else {
@@ -443,7 +413,7 @@ public class PropertiesUtil {
         }
     }
 
-    public enum Type {
+    /*private enum Type {
         NONE,
         BYTE,
         INT,
@@ -459,13 +429,66 @@ public class PropertiesUtil {
         ROTATOR,
         STR,
         MAP,
-        FIXED_ARRAY
-    }
+        FIXED_ARRAY;
 
-    public static L2Property getAt(List<L2Property> properties, String name) {
+        public static Type ofPropertyClass(Class<? extends Property> pClass) {
+            if (pClass == DelegateProperty.class) {
+                return Type.NONE;
+            } else if (pClass == PtrProperty.class) {
+                return Type.NONE;
+            } else
+                return Type.valueOf(pClass.getSimpleName().replace("Property", "").toUpperCase());
+        }
+    }*/
+
+    public static L2Property findProperty(List<L2Property> properties, Predicate<L2Property> predicate) {
         return properties.stream()
-                .filter(p -> p.getName().equalsIgnoreCase((name)))
+                .filter(predicate::test)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static final int NONE = 0;
+    private static final int BYTE = 1;
+    private static final int INT = 2;
+    private static final int BOOL = 3;
+    private static final int FLOAT = 4;
+    private static final int OBJECT = 5;
+    private static final int NAME = 6;
+    private static final int STRING = 7;
+    private static final int CLASS = 8;
+    private static final int ARRAY = 9;
+    private static final int STRUCT = 0xa;
+    private static final int VECTOR = 0xb;
+    private static final int ROTATOR = 0xc;
+    private static final int STR = 0xd;
+    private static final int MAP = 0xe;
+    private static final int FIXED_ARRAY = 0xf;
+
+    private static int getTypeOfProperty(Class<? extends Property> pClass){
+        Objects.requireNonNull(pClass);
+
+        if (pClass == ByteProperty.class)
+            return BYTE;
+        else if (pClass == IntProperty.class)
+            return INT;
+        else if (pClass == BoolProperty.class)
+            return BOOL;
+        else if (pClass == FloatProperty.class)
+            return FLOAT;
+        else if (pClass == ObjectProperty.class)
+            return OBJECT;
+        else if (pClass == NameProperty.class)
+            return NAME;
+        else if (pClass == ClassProperty.class)
+            return OBJECT;
+        else if (pClass == ArrayProperty.class)
+            return ARRAY;
+        else if (pClass == StructProperty.class)
+            return STRUCT;
+        else if (pClass == StrProperty.class)
+            return STR;
+        else
+            throw new UnsupportedOperationException("Type of "+pClass.getSimpleName()+" is unknown");
     }
 }

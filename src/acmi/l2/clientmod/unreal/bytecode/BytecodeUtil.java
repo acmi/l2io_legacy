@@ -57,8 +57,15 @@ public class BytecodeUtil {
         if (opcode == ConversionTable.OPCODE) {
             opcode = input.readUnsignedByte();
 
-            table = conversionTokenTable;
-            tableName = "Conversion";
+            if (opcode == ConversionTable.OPCODE) { //TODO remove this dirty hack
+                opcode = input.readUnsignedByte();
+
+                table = mainTokenTable;
+                tableName = "Main";
+            }else {
+                table = conversionTokenTable;
+                tableName = "Conversion";
+            }
         } else {
             if (opcode >= EX_ExtendedNative)
                 return readNativeCall(input, opcode);

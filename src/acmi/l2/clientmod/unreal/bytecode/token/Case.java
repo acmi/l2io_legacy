@@ -24,6 +24,7 @@ package acmi.l2.clientmod.unreal.bytecode.token;
 import acmi.l2.clientmod.io.annotation.UShort;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
+import acmi.l2.clientmod.unreal.bytecode.token.annotation.Offset;
 
 import java.io.IOException;
 
@@ -33,6 +34,7 @@ public class Case extends Token {
     public static final int DEFAULT = 0xffff;
 
     @UShort
+    @Offset
     private final int nextOffset;
     private final Token condition;
 

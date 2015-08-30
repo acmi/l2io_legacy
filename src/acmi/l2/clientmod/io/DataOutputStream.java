@@ -45,7 +45,7 @@ public class DataOutputStream extends FilterOutputStream implements DataOutput {
         return written;
     }
 
-    private void incCount(int value) {
+    protected void incCount(int value) {
         int temp = written + value;
         if (temp < 0) {
             temp = Integer.MAX_VALUE;
@@ -55,19 +55,14 @@ public class DataOutputStream extends FilterOutputStream implements DataOutput {
 
     @Override
     public void write(int b) throws IOException {
-        super.write(b);
+        out.write(b);
 
         incCount(1);
     }
 
     @Override
-    public final void write(byte[] b) throws IOException {
-        super.write(b);
-    }
-
-    @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        super.write(b, off, len);
+        out.write(b, off, len);
 
         incCount(len);
     }

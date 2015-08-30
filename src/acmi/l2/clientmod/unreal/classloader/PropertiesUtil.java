@@ -24,18 +24,14 @@ package acmi.l2.clientmod.unreal.classloader;
 import acmi.l2.clientmod.io.*;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.*;
+import acmi.l2.clientmod.unreal.objectfactory.ObjectFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.Class;
 import java.lang.Object;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 /**
@@ -278,13 +274,13 @@ public class PropertiesUtil {
 
                     int type = getTypeOfProperty(template.getClass());
                     int size = getPropertySize(bytes.length);
-                    boolean array = (i > 0) || (type == ARRAY && ((Boolean)obj));
+                    boolean array = (i > 0) || (type == BOOL && ((Boolean) obj));
                     int info = (array ? 1 << 7 : 0) | (size << 4) | type;
 
                     buffer.writeCompactInt(up.nameReference(template.getEntry().getObjectName().getName()));
                     buffer.writeByte(info);
                     if (type == STRUCT)
-                        buffer.writeCompactInt(up.nameReference(((StructProperty)template).getStructType().getObjectName().getName()));
+                        buffer.writeCompactInt(up.nameReference(((StructProperty) template).getStructType().getObjectName().getName()));
                     switch (size) {
                         case 5:
                             buffer.writeByte(bytes.length);
@@ -312,6 +308,8 @@ public class PropertiesUtil {
             objBuffer.writeByte((Integer) obj);
         } else if (template instanceof IntProperty) {
             objBuffer.writeInt((Integer) obj);
+        } else if (template instanceof BoolProperty) {
+            //nothing
         } else if (template instanceof FloatProperty) {
             objBuffer.writeFloat((Float) obj);
         } else if (template instanceof ObjectProperty) {
@@ -325,17 +323,9 @@ public class PropertiesUtil {
             objBuffer.writeCompactInt(arrayList.size());
 
             UnrealPackageReadOnly.ExportEntry arrayInner = (UnrealPackageReadOnly.ExportEntry) arrayProperty.getInner();
-            String a = arrayInner.getObjectClass().getObjectName().getName();
-            try {
-                Class<? extends Property> pc = Class.forName("acmi.l2.clientmod.unreal." + a).asSubclass(Property.class);
-                Property f = pc.getConstructor(ByteBuffer.class, UnrealPackageReadOnly.ExportEntry.class, PropertiesUtil.class)
-                        .newInstance(ByteBuffer.wrap(arrayInner.getObjectRawDataExternally()).order(ByteOrder.LITTLE_ENDIAN), arrayInner, this);
-
-                for (Object arrayObj : arrayList) {
-                    write(objBuffer, f, arrayObj, up);
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
+            Property f = (Property) new ObjectFactory(getUnrealClassLoader()).apply(arrayInner);
+            for (Object arrayObj : arrayList) {
+                write(objBuffer, f, arrayObj, up);
             }
         } else if (template instanceof StructProperty) {
             StructProperty structProperty = (StructProperty) template;
@@ -465,7 +455,7 @@ public class PropertiesUtil {
     private static final int MAP = 0xe;
     private static final int FIXED_ARRAY = 0xf;
 
-    private static int getTypeOfProperty(Class<? extends Property> pClass){
+    private static int getTypeOfProperty(Class<? extends Property> pClass) {
         Objects.requireNonNull(pClass);
 
         if (pClass == ByteProperty.class)
@@ -489,6 +479,6 @@ public class PropertiesUtil {
         else if (pClass == StrProperty.class)
             return STR;
         else
-            throw new UnsupportedOperationException("Type of "+pClass.getSimpleName()+" is unknown");
+            throw new UnsupportedOperationException("Type of " + pClass.getSimpleName() + " is unknown");
     }
 }

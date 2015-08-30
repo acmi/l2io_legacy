@@ -38,8 +38,6 @@ import java.util.logging.Logger;
 public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry, Object> {
     private static final Logger log = Logger.getLogger(ObjectFactory.class.getName());
 
-    public static String unrealClassesPackage = "acmi.l2.clientmod.unreal";
-
     private final UnrealClassLoader classLoader;
 
     public ObjectFactory(UnrealClassLoader classLoader) {
@@ -76,7 +74,7 @@ public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry
 
         Class<?> clazz = null;
         try {
-            String javaClassName = unrealClassesPackage + "." + unrealClassNameToJavaClassName(className);
+            String javaClassName = UnrealClassLoader.UNREAL_CLASSES_PACKAGE + "." + UnrealClassLoader.unrealClassNameToJavaClassName(className);
             log.fine(() -> String.format("%s -> %s", className, javaClassName));
             clazz = java.lang.Class.forName(javaClassName);
             return clazz.asSubclass(Object.class);
@@ -91,10 +89,5 @@ public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry
         if (parent == null)
             parent = "Core.Object";
         return getClass(parent);
-    }
-
-    private String unrealClassNameToJavaClassName(String className) {
-        String[] path = className.split("\\.");
-        return String.format("%s.%s", path[0].toLowerCase(), path[1]);
     }
 }

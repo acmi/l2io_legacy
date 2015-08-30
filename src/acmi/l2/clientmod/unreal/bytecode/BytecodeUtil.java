@@ -62,7 +62,7 @@ public class BytecodeUtil {
 
                 table = mainTokenTable;
                 tableName = "Main";
-            }else {
+            } else {
                 table = conversionTokenTable;
                 tableName = "Conversion";
             }

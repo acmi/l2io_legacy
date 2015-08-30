@@ -35,6 +35,8 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class UnrealClassLoader {
+    public static final String UNREAL_CLASSES_PACKAGE = "acmi.l2.clientmod.unreal";
+
     private final PackageLoader packageLoader;
     private final PropertiesUtil propertiesUtil;
 
@@ -52,7 +54,7 @@ public class UnrealClassLoader {
         return propertiesUtil;
     }
 
-    private Optional<? extends UnrealPackageReadOnly.ExportEntry> getExportEntry(String name, Predicate<UnrealPackageReadOnly.ExportEntry> condition) throws UnrealException {
+    public Optional<? extends UnrealPackageReadOnly.ExportEntry> getExportEntry(String name, Predicate<UnrealPackageReadOnly.ExportEntry> condition) throws UnrealException {
         if (name == null)
             return Optional.empty();
 
@@ -134,16 +136,16 @@ public class UnrealClassLoader {
         try {
             return getStruct(clazz).getEntry().getObjectSuperClass().getObjectFullName();
         } catch (Exception e) {
-            try{
-                java.lang.Class<?> javaClass = java.lang.Class.forName("acmi.l2.clientmod.unreal."+clazz.substring(0, 1).toLowerCase()+clazz.substring(1));
+            try {
+                java.lang.Class<?> javaClass = java.lang.Class.forName(UNREAL_CLASSES_PACKAGE + "." + unrealClassNameToJavaClassName(clazz));
                 java.lang.Class<?> javaSuperClass = javaClass.getSuperclass();
                 String javaSuperClassName = javaSuperClass.getName();
-                if (javaSuperClassName.contains("acmi.l2.clientmod.unreal.")) {
-                    javaSuperClassName = javaSuperClassName.replace("acmi.l2.clientmod.unreal.", "");
-                    return javaSuperClassName.substring(0, 1).toUpperCase()+javaSuperClassName.substring(1);
+                if (javaSuperClassName.contains(UNREAL_CLASSES_PACKAGE)) {
+                    javaSuperClassName = javaSuperClassName.substring(UNREAL_CLASSES_PACKAGE.length() + 1);
+                    return javaSuperClassName.substring(0, 1).toUpperCase() + javaSuperClassName.substring(1);
                 }
                 return null;
-            }catch (Exception e1){
+            } catch (Exception e1) {
                 return null;
             }
         }
@@ -172,7 +174,7 @@ public class UnrealClassLoader {
         };
 
         Optional<? extends UnrealPackageReadOnly.ExportEntry> eOptional;
-        while((eOptional=getExportEntry(name, condition)).isPresent()){
+        while ((eOptional = getExportEntry(name, condition)).isPresent()) {
             UnrealPackageReadOnly.ExportEntry entry = eOptional.get();
             tree.add(entry);
             name = entry.getObjectSuperClass() != null ?
@@ -184,7 +186,7 @@ public class UnrealClassLoader {
         return tree;
     }
 
-    private Field loadField(UnrealPackageReadOnly.ExportEntry entry) {
+    public Field loadField(UnrealPackageReadOnly.ExportEntry entry) {
         try {
             DataInput buffer = new DataInputStream(new ByteArrayInputStream(entry.getObjectRawDataExternally()), entry.getUnrealPackage().getCharset());
 
@@ -203,5 +205,10 @@ public class UnrealClassLoader {
 
     public Function getNativeFunction(int index) {
         return nativeFunctions.get(index);
+    }
+
+    public static String unrealClassNameToJavaClassName(String className) {
+        String[] path = className.split("\\.");
+        return String.format("%s.%s", path[0].toLowerCase(), path[1]);
     }
 }

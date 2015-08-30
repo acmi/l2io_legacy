@@ -32,6 +32,7 @@ public class Case extends Token {
 
     public static final int DEFAULT = 0xffff;
 
+    @UShort
     private final int nextOffset;
     private final Token condition;
 

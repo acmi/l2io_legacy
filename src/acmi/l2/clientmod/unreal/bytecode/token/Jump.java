@@ -59,7 +59,7 @@ public class Jump extends Token {
     @Override
     public String toString() {
         return "Jump("
-                + String.format("0x%02x", targetOffset)
+                + String.format("0x%04x", targetOffset)
                 + ')';
     }
 }

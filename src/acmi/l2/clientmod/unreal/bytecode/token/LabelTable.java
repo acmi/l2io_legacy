@@ -74,7 +74,7 @@ public class LabelTable extends Token {
     @Override
     public String toString() {
         return "LabelTable("
-                + (labels == null || labels.length == 0 ? "" : ", " + Arrays.stream(labels).map(Objects::toString).collect(Collectors.joining(", ")))
+                + (labels == null || labels.length == 0 ? "" : Arrays.stream(labels).map(Objects::toString).collect(Collectors.joining(", ", ", ", "")))
                 + ')';
     }
 

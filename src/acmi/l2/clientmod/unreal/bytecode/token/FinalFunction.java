@@ -48,7 +48,7 @@ public class FinalFunction extends Token {
     public String toString() {
         return "FinalFunction("
                 + funcRef
-                + (params == null || params.length == 0 ? "" : ", " + Arrays.stream(params).map(Objects::toString).collect(Collectors.joining(", ")))
+                + (params == null || params.length == 0 ? "" :  Arrays.stream(params).map(Objects::toString).collect(Collectors.joining(", ", ", ", "")))
                 + ')';
     }
 

@@ -72,7 +72,7 @@ public class VirtualFunction extends Token {
     public String toString() {
         return "VirtualFunction("
                 + nameRef
-                + (params == null || params.length == 0 ? "" : ", " + Arrays.stream(params).map(Objects::toString).collect(Collectors.joining(", ")))
+                + (params == null || params.length == 0 ? "" : Arrays.stream(params).map(Objects::toString).collect(Collectors.joining(", ", ", ", "")))
                 + ')';
     }
 }

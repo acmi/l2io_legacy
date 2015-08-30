@@ -21,6 +21,7 @@
  */
 package acmi.l2.clientmod.unreal.bytecode.token;
 
+import acmi.l2.clientmod.io.annotation.UShort;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeInput;
 import acmi.l2.clientmod.unreal.bytecode.BytecodeOutput;
 
@@ -68,7 +69,7 @@ public class Case extends Token {
     @Override
     public String toString() {
         return "Case("
-                + nextOffset
+                + String.format("0x%04x", nextOffset)
                 + "," + condition
                 + ')';
     }

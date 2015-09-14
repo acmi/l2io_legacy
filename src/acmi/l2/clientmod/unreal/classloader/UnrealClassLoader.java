@@ -151,13 +151,19 @@ public class UnrealClassLoader {
         }
     }
 
+    private Map<String, Boolean> isSubclassCache = new HashMap<>();
+
     public boolean isSubclass(String parent, String child) {
         if (parent.equalsIgnoreCase(child))
             return true;
 
-        child = getSuperClass(child);
+        String k = parent+"@"+child;
+        if (!isSubclassCache.containsKey(k)){
+            child = getSuperClass(child);
 
-        return child != null && isSubclass(parent, child);
+            isSubclassCache.put(k, child != null && isSubclass(parent, child));
+        }
+        return isSubclassCache.get(k);
     }
 
     public List<UnrealPackageReadOnly.ExportEntry> getClassTree(String name) {

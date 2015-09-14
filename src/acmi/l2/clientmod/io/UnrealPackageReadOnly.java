@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 import static acmi.l2.clientmod.util.CollectionsMethods.indexIf;
 
 public interface UnrealPackageReadOnly {
+    String getPackageName();
+
     Charset getCharset();
 
     int getVersion();
@@ -62,13 +64,13 @@ public interface UnrealPackageReadOnly {
             return null;
     }
 
-    public interface NameEntry {
+    interface NameEntry {
         String getName();
 
         int getFlags();
     }
 
-    public interface Entry {
+    interface Entry {
         UnrealPackageReadOnly getUnrealPackage();
 
         int getObjectReference();
@@ -81,18 +83,26 @@ public interface UnrealPackageReadOnly {
             return getObjectInnerFullName();
         }
 
-        String getObjectInnerFullName();
+        default String getObjectInnerFullName(){
+            Entry pckg = getObjectPackage();
+            return pckg == null ? getObjectName().getName() : pckg.getObjectInnerFullName() + '.' + getObjectName().getName();
+        }
     }
 
-    public interface ImportEntry extends Entry {
+    interface ImportEntry extends Entry {
         UnrealPackageReadOnly getUnrealPackage();
 
         NameEntry getClassPackage();
 
         NameEntry getClassName();
+
+        default String getFullClassName() {
+            NameEntry pckg = getClassPackage();
+            return pckg == null ? getClassName().getName() : pckg.getName() + '.' + getClassName().getName();
+        }
     }
 
-    public interface ExportEntry extends Entry {
+    interface ExportEntry extends Entry {
         Entry getObjectClass();
 
         Entry getObjectSuperClass();
@@ -104,9 +114,14 @@ public interface UnrealPackageReadOnly {
         int getOffset();
 
         byte[] getObjectRawDataExternally() throws IOException;
+
+        @Override
+        default String getObjectFullName(){
+            return getUnrealPackage().getPackageName() + "." + getObjectInnerFullName();
+        }
     }
 
-    public enum ObjectFlag {
+    enum ObjectFlag {
         /**
          * Object is transactional.
          */
@@ -259,13 +274,13 @@ public interface UnrealPackageReadOnly {
         }
     }
 
-    public static final int PACKAGE_FLAGS = ObjectFlag.getFlags(
+    int PACKAGE_FLAGS = ObjectFlag.getFlags(
             ObjectFlag.Public,
             ObjectFlag.LoadForClient,
             ObjectFlag.LoadForServer,
             ObjectFlag.LoadForEdit);
 
-    public enum PackageFlag {
+    enum PackageFlag {
         /**
          * Allow downloading package
          */

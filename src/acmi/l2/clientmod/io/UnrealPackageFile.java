@@ -686,6 +686,7 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
                 .orElseThrow(() -> new IllegalStateException("Data block is empty"));
     }
 
+    @Override
     public void close() throws IOException {
         file.close();
     }
@@ -706,6 +707,10 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
         public int getIndex() {
             return index;
         }
+
+        public abstract PackageEntry previous();
+
+        public abstract PackageEntry next();
     }
 
     public static final class Generation extends PackageEntry {
@@ -733,6 +738,16 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
                     ", importCount=" + importCount +
                     ']';
         }
+
+        @Override
+        public PackageEntry previous() {
+            return getUnrealPackage().getGenerations().get(getIndex() - 1);
+        }
+
+        @Override
+        public PackageEntry next() {
+            return getUnrealPackage().getGenerations().get(getIndex() + 1);
+        }
     }
 
     public static final class NameEntry extends PackageEntry implements UnrealPackageReadOnly.NameEntry {
@@ -745,18 +760,22 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             this.flags = flags;
         }
 
+        @Override
         public String getName() {
             return name;
         }
 
+        @Override
         public int getFlags() {
             return flags;
         }
 
+        @Override
         public String toString() {
             return name;
         }
 
+        @Override
         public boolean equals(Object o) {
             if (this == o) {
                 return true;
@@ -769,14 +788,17 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return name.equalsIgnoreCase(nameEntry.name);
         }
 
+        @Override
         public int hashCode() {
             return name.hashCode();
         }
 
+        @Override
         public NameEntry previous() {
             return getUnrealPackage().getNameTable().get(getIndex() - 1);
         }
 
+        @Override
         public NameEntry next() {
             return getUnrealPackage().getNameTable().get(getIndex() + 1);
         }
@@ -794,14 +816,17 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             this.objectName = objectName;
         }
 
+        @Override
         public Entry getObjectPackage() {
             return getUnrealPackage().objectReference(objectPackage);
         }
 
+        @Override
         public NameEntry getObjectName() {
             return getUnrealPackage().getNameTable().get(objectName);
         }
 
+        @Override
         public String getObjectInnerFullName() {
             String str = innerName.get();
             if (str == null) {
@@ -812,6 +837,7 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return str;
         }
 
+        @Override
         public boolean equals(Object o) {
             if (this == o) {
                 return true;
@@ -824,10 +850,12 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return (objectName == entry.objectName) && (objectPackage == entry.objectPackage);
         }
 
+        @Override
         public int hashCode() {
             return (objectPackage << 16) + objectName;
         }
 
+        @Override
         public String toString() {
             return getObjectFullName();
         }
@@ -851,26 +879,32 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             this.offset = offset;
         }
 
+        @Override
         public int getObjectReference() {
             return getIndex() + 1;
         }
 
+        @Override
         public Entry getObjectClass() {
             return getUnrealPackage().objectReference(objectClass);
         }
 
+        @Override
         public Entry getObjectSuperClass() {
             return getUnrealPackage().objectReference(objectSuperClass);
         }
 
+        @Override
         public int getObjectFlags() {
             return objectFlags;
         }
 
+        @Override
         public int getSize() {
             return size;
         }
 
+        @Override
         public int getOffset() {
             return offset;
         }
@@ -885,6 +919,7 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return raw;
         }
 
+        @Override
         public byte[] getObjectRawDataExternally() throws IOException {
             if (getSize() == 0)
                 return new byte[0];
@@ -954,10 +989,12 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return getObjectInnerFullName();
         }
 
+        @Override
         public ExportEntry previous() {
             return getUnrealPackage().getExportTable().get(getIndex() - 1);
         }
 
+        @Override
         public ExportEntry next() {
             return getUnrealPackage().getExportTable().get(getIndex() + 1);
         }
@@ -975,18 +1012,22 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             this.className = className;
         }
 
+        @Override
         public int getObjectReference() {
             return -(getIndex() + 1);
         }
 
+        @Override
         public NameEntry getClassPackage() {
             return getUnrealPackage().getNameTable().get(classPackage);
         }
 
+        @Override
         public NameEntry getClassName() {
             return getUnrealPackage().getNameTable().get(className);
         }
 
+        @Override
         public String getFullClassName() {
             String str = fullClassName.get();
             if (str == null) {
@@ -997,10 +1038,12 @@ public class UnrealPackageFile implements UnrealPackageReadOnly, Closeable {
             return str;
         }
 
+        @Override
         public ImportEntry previous() {
             return getUnrealPackage().getImportTable().get(getIndex() - 1);
         }
 
+        @Override
         public ImportEntry next() {
             return getUnrealPackage().getImportTable().get(getIndex() + 1);
         }

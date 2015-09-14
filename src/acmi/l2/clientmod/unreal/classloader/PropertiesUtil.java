@@ -94,7 +94,7 @@ public class PropertiesUtil {
                             .findAny()
                             .orElseThrow(() -> new UnrealException(objClass + ": Property template not found: " + n));
 
-                    property = new L2Property(template, up);
+                    property = new SimpleL2Property(template);
                     properties.add(property);
                 }
 
@@ -202,50 +202,50 @@ public class PropertiesUtil {
         try {
             switch (structName) {
                 case "Core.Object.Vector": {
-                    L2Property x = new L2Property(properties.get(0), up);
+                    L2Property x = new SimpleL2Property(properties.get(0));
                     x.putAt(0, objBuffer.readFloat());
-                    L2Property y = new L2Property(properties.get(1), up);
+                    L2Property y = new SimpleL2Property(properties.get(1));
                     y.putAt(0, objBuffer.readFloat());
-                    L2Property z = new L2Property(properties.get(2), up);
+                    L2Property z = new SimpleL2Property(properties.get(2));
                     z.putAt(0, objBuffer.readFloat());
                     return Arrays.asList(x, y, z);
                 }
                 case "Core.Object.Rotator": {
-                    L2Property pitch = new L2Property(properties.get(0), up);
+                    L2Property pitch = new SimpleL2Property(properties.get(0));
                     pitch.putAt(0, objBuffer.readInt());
-                    L2Property yaw = new L2Property(properties.get(1), up);
+                    L2Property yaw = new SimpleL2Property(properties.get(1));
                     yaw.putAt(0, objBuffer.readInt());
-                    L2Property roll = new L2Property(properties.get(2), up);
+                    L2Property roll = new SimpleL2Property(properties.get(2));
                     roll.putAt(0, objBuffer.readInt());
                     return Arrays.asList(pitch, yaw, roll);
                 }
                 case "Core.Object.Color": {
-                    L2Property b = new L2Property(properties.get(0), up);
+                    L2Property b = new SimpleL2Property(properties.get(0));
                     b.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property g = new L2Property(properties.get(1), up);
+                    L2Property g = new SimpleL2Property(properties.get(1));
                     g.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property r = new L2Property(properties.get(2), up);
+                    L2Property r = new SimpleL2Property(properties.get(2));
                     r.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property a = new L2Property(properties.get(3), up);
+                    L2Property a = new SimpleL2Property(properties.get(3));
                     a.putAt(0, objBuffer.readUnsignedByte());
                     return Arrays.asList(b, g, r, a);
                 }
                 case "Fire.FireTexture.Spark": {
-                    L2Property type = new L2Property(properties.get(0), up);
+                    L2Property type = new SimpleL2Property(properties.get(0));
                     type.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property heat = new L2Property(properties.get(1), up);
+                    L2Property heat = new SimpleL2Property(properties.get(1));
                     heat.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property x = new L2Property(properties.get(2), up);
+                    L2Property x = new SimpleL2Property(properties.get(2));
                     x.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property y = new L2Property(properties.get(3), up);
+                    L2Property y = new SimpleL2Property(properties.get(3));
                     y.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property byteA = new L2Property(properties.get(4), up);
+                    L2Property byteA = new SimpleL2Property(properties.get(4));
                     byteA.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property byteB = new L2Property(properties.get(5), up);
+                    L2Property byteB = new SimpleL2Property(properties.get(5));
                     byteB.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property byteC = new L2Property(properties.get(6), up);
+                    L2Property byteC = new SimpleL2Property(properties.get(6));
                     byteC.putAt(0, objBuffer.readUnsignedByte());
-                    L2Property byteD = new L2Property(properties.get(7), up);
+                    L2Property byteD = new SimpleL2Property(properties.get(7));
                     byteD.putAt(0, objBuffer.readUnsignedByte());
                     return Arrays.asList(type, heat, x, y, byteA, byteB, byteC, byteD);
                 }
@@ -438,16 +438,16 @@ public class PropertiesUtil {
                 .orElse(null);
     }
 
-    private static final int NONE = 0;
-    private static final int BYTE = 1;
-    private static final int INT = 2;
+    private static final int NONE = 0x0;
+    private static final int BYTE = 0x1;
+    private static final int INT = 0x2;
     private static final int BOOL = 3;
     private static final int FLOAT = 4;
-    private static final int OBJECT = 5;
-    private static final int NAME = 6;
-    private static final int STRING = 7;
-    private static final int CLASS = 8;
-    private static final int ARRAY = 9;
+    private static final int OBJECT = 0x5;
+    private static final int NAME = 0x6;
+    private static final int STRING = 0x7;
+    private static final int CLASS = 0x8;
+    private static final int ARRAY = 0x9;
     private static final int STRUCT = 0xa;
     private static final int VECTOR = 0xb;
     private static final int ROTATOR = 0xc;

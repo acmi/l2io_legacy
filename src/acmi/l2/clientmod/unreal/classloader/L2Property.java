@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 acmi
+ * Copyright (c) 2015 acmi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,47 +22,79 @@
 package acmi.l2.clientmod.unreal.classloader;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
-import acmi.l2.clientmod.unreal.core.Property;
+import acmi.l2.clientmod.unreal.core.*;
+import acmi.l2.clientmod.unreal.core.Enum;
 
-import java.util.Arrays;
+import java.lang.Object;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public final class L2Property {
-    private final Property template;
-    private final Object[] value;
-    private final UnrealPackageReadOnly up;
+public interface L2Property {
+    Property getTemplate();
 
-    public L2Property(Property template, UnrealPackageReadOnly up) {
-        this.template = template;
-        this.value = new Object[template.arrayDimension];
-        this.up = up;
+    default String getName(){
+        return getTemplate().getEntry().getObjectName().getName();
     }
 
-    public String getName() {
-        return template.getEntry().getObjectName().getName();
+    int getSize();
+
+    Object getAt(int index);
+
+    void putAt(int index, Object value);
+
+    default String toString(UnrealPackageReadOnly up, UnrealClassLoader classLoader) {
+        return getName() + "=" + (getSize() == 1 ? toString(getAt(0), getTemplate(), up, classLoader) : IntStream.range(0, getSize())
+                .mapToObj(this::getAt)
+                .map(o -> toString(o, getTemplate(), up, classLoader))
+                .collect(Collectors.joining(",", "(", ")")));
     }
 
-    public Property getTemplate() {
-        return template;
-    }
+    static String toString(Object val, Property template, UnrealPackageReadOnly up, UnrealClassLoader classLoader){
+        if (val == null)
+            return "null";
 
-    public UnrealPackageReadOnly getUnrealPackage() {
-        return up;
-    }
+        if (template instanceof ByteProperty){
+            ByteProperty byteProperty = (ByteProperty) template;
+            if (byteProperty.getEnumType() == null) {
+                return val.toString();
+            } else {
+                Enum en = (Enum) classLoader.loadField(classLoader.getExportEntry(byteProperty.getEnumType().getObjectFullName(), e -> e.getObjectClass().getObjectFullName().equals("Core.Enum"))
+                        .orElseThrow(() -> new IllegalStateException(String.format("Enum %s not found", byteProperty.getEnumType()))));
+                return en.getValues().get((Integer) val);
+            }
+        }else if (template instanceof IntProperty ||
+                template instanceof BoolProperty ||
+                template instanceof FloatProperty) {
+            return val.toString();
+        }else if (template instanceof ObjectProperty){
+            UnrealPackageReadOnly.Entry ref = up.objectReference((Integer) val);
+            if (ref == null) {
+                return "null";
+            } else {
+                String cl;
+                if (ref instanceof UnrealPackageReadOnly.ImportEntry)
+                    cl = ((UnrealPackageReadOnly.ImportEntry) ref).getClassName().getName();
+                else if (((UnrealPackageReadOnly.ExportEntry) ref).getObjectClass() != null)
+                    cl = ((UnrealPackageReadOnly.ExportEntry) ref).getObjectClass().getObjectName().getName();
+                else
+                    cl = "Class";
 
-    public int getSize() {
-        return value.length;
-    }
-
-    public Object getAt(int index) {
-        return value[index];
-    }
-
-    public void putAt(int index, Object value) {
-        this.value[index] = value;
-    }
-
-    @Override
-    public String toString() {
-        return "[" + template.getCategory() + "]" + template.getEntry().getObjectFullName() + "=" + Arrays.toString(value);
+                return cl+"'"+ref+"'";
+            }
+        }else if (template instanceof NameProperty){
+            return "'"+up.nameReference((Integer) val)+"'";
+        }else if (template instanceof ArrayProperty){
+            throw new UnsupportedOperationException("array");
+        }else if (template instanceof StructProperty){
+            return ((List<L2Property>)val).stream()
+                    .map(Objects::toString)
+                    .collect(Collectors.joining(",", "(", ")"));
+        }else if (template instanceof StrProperty){
+            return "\""+val.toString()+"\"";
+        }else {
+            throw new UnsupportedOperationException("wtf");
+        }
     }
 }

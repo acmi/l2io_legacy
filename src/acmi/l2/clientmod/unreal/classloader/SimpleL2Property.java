@@ -21,18 +21,26 @@
  */
 package acmi.l2.clientmod.unreal.classloader;
 
-import acmi.l2.clientmod.unreal.core.*;
+import acmi.l2.clientmod.unreal.core.Property;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
-import java.lang.Object;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class SimpleL2Property implements L2Property{
     private final Property template;
-    private final Object[] value;
+    private final ObservableList<Object> backingList;
 
     public SimpleL2Property(Property template) {
         this.template = template;
-        this.value = new Object[template.arrayDimension];
+        this.backingList = FXCollections.observableList(new ArrayList<>(Arrays.asList(new Object[template.arrayDimension])), o -> {
+            if (o instanceof Observable)
+                return new Observable[]{(Observable)o};
+            return new Observable[]{};
+        });
     }
 
     @Override
@@ -42,21 +50,31 @@ public class SimpleL2Property implements L2Property{
 
     @Override
     public int getSize() {
-        return value.length;
+        return backingList.size();
     }
 
     @Override
     public Object getAt(int index) {
-        return value[index];
+        return backingList.get(index);
     }
 
     @Override
     public void putAt(int index, Object value) {
-        this.value[index] = value;
+        backingList.set(index, value);
+    }
+
+    @Override
+    public void addListener(InvalidationListener listener) {
+        backingList.addListener(listener);
+    }
+
+    @Override
+    public void removeListener(InvalidationListener listener) {
+        backingList.removeListener(listener);
     }
 
     @Override
     public String toString() {
-        return getName() + "=" + (value.length == 1 ? value[0] : Arrays.toString(value));
+        return getName() + "=" + (getSize() == 1 ? getAt(0) : backingList.toString());
     }
 }

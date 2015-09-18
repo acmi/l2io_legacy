@@ -25,6 +25,9 @@ import acmi.l2.clientmod.io.*;
 import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.*;
 import acmi.l2.clientmod.unreal.objectfactory.ObjectFactory;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -60,7 +63,7 @@ public class PropertiesUtil {
         return unrealClassLoader;
     }
 
-    public List<L2Property> readProperties(DataInput dataInput, String objClass, UnrealPackageReadOnly up) throws UnrealException {
+    public ObservableList<L2Property> readProperties(DataInput dataInput, String objClass, UnrealPackageReadOnly up) throws UnrealException {
         List<L2Property> properties = new ArrayList<>();
 
         List<Property> classTemplate = unrealClassLoader.getStructProperties(objClass);
@@ -116,7 +119,7 @@ public class PropertiesUtil {
             throw new UnrealException(e);
         }
 
-        return properties;
+        return FXCollections.observableList(properties, p -> new Observable[]{p});
     }
 
     private static int readPropertySize(int sizeType, DataInput dataInput) throws IOException {
@@ -173,7 +176,7 @@ public class PropertiesUtil {
                 for (int i = 0; i < arraySize; i++) {
                     arrayList.add(read(objBuffer, propertyType, array, arrayInner, structName, up));
                 }
-                return arrayList;
+                return FXCollections.observableList(arrayList);
             case STRUCT:
                 return readStruct(objBuffer, structName, up);
             case STR:
@@ -183,7 +186,7 @@ public class PropertiesUtil {
         }
     }
 
-    private List<L2Property> readStruct(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws IOException {
+    private ObservableList<L2Property> readStruct(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws IOException {
         switch (structName) {
             case "Vector":
                 return readStructBin(objBuffer, "Core.Object.Vector", up);
@@ -196,7 +199,7 @@ public class PropertiesUtil {
         }
     }
 
-    public List<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws UnrealException {
+    public ObservableList<L2Property> readStructBin(DataInput objBuffer, String structName, UnrealPackageReadOnly up) throws UnrealException {
         List<Property> properties = unrealClassLoader.getStructProperties(structName);
 
         try {
@@ -208,7 +211,7 @@ public class PropertiesUtil {
                     y.putAt(0, objBuffer.readFloat());
                     L2Property z = new SimpleL2Property(properties.get(2));
                     z.putAt(0, objBuffer.readFloat());
-                    return Arrays.asList(x, y, z);
+                    return FXCollections.observableList(new ArrayList<>(Arrays.asList(x, y, z)), p -> new Observable[]{p});
                 }
                 case "Core.Object.Rotator": {
                     L2Property pitch = new SimpleL2Property(properties.get(0));
@@ -217,7 +220,7 @@ public class PropertiesUtil {
                     yaw.putAt(0, objBuffer.readInt());
                     L2Property roll = new SimpleL2Property(properties.get(2));
                     roll.putAt(0, objBuffer.readInt());
-                    return Arrays.asList(pitch, yaw, roll);
+                    return FXCollections.observableList(new ArrayList<>(Arrays.asList(pitch, yaw, roll)), p -> new Observable[]{p});
                 }
                 case "Core.Object.Color": {
                     L2Property b = new SimpleL2Property(properties.get(0));
@@ -228,7 +231,7 @@ public class PropertiesUtil {
                     r.putAt(0, objBuffer.readUnsignedByte());
                     L2Property a = new SimpleL2Property(properties.get(3));
                     a.putAt(0, objBuffer.readUnsignedByte());
-                    return Arrays.asList(b, g, r, a);
+                    return FXCollections.observableList(new ArrayList<>(Arrays.asList(b, g, r, a)), p -> new Observable[]{p});
                 }
                 case "Fire.FireTexture.Spark": {
                     L2Property type = new SimpleL2Property(properties.get(0));
@@ -247,7 +250,7 @@ public class PropertiesUtil {
                     byteC.putAt(0, objBuffer.readUnsignedByte());
                     L2Property byteD = new SimpleL2Property(properties.get(7));
                     byteD.putAt(0, objBuffer.readUnsignedByte());
-                    return Arrays.asList(type, heat, x, y, byteA, byteB, byteC, byteD);
+                    return FXCollections.observableList(new ArrayList<>(Arrays.asList(type, heat, x, y, byteA, byteB, byteC, byteD)), p -> new Observable[]{p});
                 }
                 default:
                     throw new UnsupportedOperationException("Not implemented"); //TODO

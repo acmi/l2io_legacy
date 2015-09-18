@@ -22,19 +22,20 @@
 package acmi.l2.clientmod.unreal.classloader;
 
 import acmi.l2.clientmod.io.UnrealPackageReadOnly;
+import acmi.l2.clientmod.unreal.UnrealException;
 import acmi.l2.clientmod.unreal.core.*;
 import acmi.l2.clientmod.unreal.core.Enum;
+import javafx.beans.Observable;
 
 import java.lang.Object;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public interface L2Property {
+public interface L2Property extends Observable {
     Property getTemplate();
 
-    default String getName(){
+    default String getName() {
         return getTemplate().getEntry().getObjectName().getName();
     }
 
@@ -51,11 +52,11 @@ public interface L2Property {
                 .collect(Collectors.joining(",", "(", ")")));
     }
 
-    static String toString(Object val, Property template, UnrealPackageReadOnly up, UnrealClassLoader classLoader){
+    static String toString(Object val, Property template, UnrealPackageReadOnly up, UnrealClassLoader classLoader) {
         if (val == null)
             return "null";
 
-        if (template instanceof ByteProperty){
+        if (template instanceof ByteProperty) {
             ByteProperty byteProperty = (ByteProperty) template;
             if (byteProperty.getEnumType() == null) {
                 return val.toString();
@@ -64,11 +65,11 @@ public interface L2Property {
                         .orElseThrow(() -> new IllegalStateException(String.format("Enum %s not found", byteProperty.getEnumType()))));
                 return en.getValues().get((Integer) val);
             }
-        }else if (template instanceof IntProperty ||
+        } else if (template instanceof IntProperty ||
                 template instanceof BoolProperty ||
                 template instanceof FloatProperty) {
             return val.toString();
-        }else if (template instanceof ObjectProperty){
+        } else if (template instanceof ObjectProperty) {
             UnrealPackageReadOnly.Entry ref = up.objectReference((Integer) val);
             if (ref == null) {
                 return "null";
@@ -81,19 +82,24 @@ public interface L2Property {
                 else
                     cl = "Class";
 
-                return cl+"'"+ref+"'";
+                return cl + "'" + ref + "'";
             }
-        }else if (template instanceof NameProperty){
-            return "'"+up.nameReference((Integer) val)+"'";
-        }else if (template instanceof ArrayProperty){
-            throw new UnsupportedOperationException("array");
-        }else if (template instanceof StructProperty){
-            return ((List<L2Property>)val).stream()
-                    .map(Objects::toString)
+        } else if (template instanceof NameProperty) {
+            return "'" + up.nameReference((Integer) val) + "'";
+        } else if (template instanceof ArrayProperty) {
+            Property innerProp = (Property) classLoader.loadField(classLoader.getExportEntry(((ArrayProperty) template).getInner().getObjectFullName(), e -> true)
+                    .orElseThrow(() -> new UnrealException(template + ": null array inner ref")));
+            List<Object> array = (List<Object>) val;
+            return array.stream()
+                    .map(o -> toString(o, innerProp, up, classLoader))
                     .collect(Collectors.joining(",", "(", ")"));
-        }else if (template instanceof StrProperty){
-            return "\""+val.toString()+"\"";
-        }else {
+        } else if (template instanceof StructProperty) {
+            return ((List<L2Property>) val).stream()
+                    .map(p -> p.toString(up, classLoader))
+                    .collect(Collectors.joining(",", "(", ")"));
+        } else if (template instanceof StrProperty) {
+            return "\"" + val.toString() + "\"";
+        } else {
             throw new UnsupportedOperationException("wtf");
         }
     }

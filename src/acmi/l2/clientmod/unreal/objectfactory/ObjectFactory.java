@@ -31,7 +31,9 @@ import acmi.l2.clientmod.unreal.core.Object;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -63,8 +65,12 @@ public class ObjectFactory implements Function<UnrealPackageReadOnly.ExportEntry
             if (dis.available() > 0)
                 log.warning(() -> String.format("%d bytes of %s not read", bais.available(), object));
             return object;
-        } catch (ReflectiveOperationException | IOException e) {
-            throw new UnrealException(e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InvocationTargetException e) {
+            throw new UnrealException(entry+": deserialize error", e.getCause());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
         }
     }
 

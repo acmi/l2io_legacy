@@ -51,12 +51,7 @@ public class ConvertTool {
         ObjectFactory objectFactory = new ObjectFactory(classLoader);
         PropertiesUtil propertiesUtil = classLoader.getPropertiesUtil();
 
-        if (log == null)
-            log = new PrintStream(new OutputStream() {
-                @Override
-                public void write(int b) throws IOException {
-                }
-            });
+        log = checkLog(log);
 
         try (RandomAccessFile dest = new RandomAccessFile(savePath, false, Charset.forName("ascii"))) {
             dest.setLength(0);
@@ -139,6 +134,14 @@ public class ConvertTool {
                 dest.writeCompactInt(exportOffsets[i]);
             }
         }
+    }
+
+    private static PrintStream checkLog(PrintStream log) {
+        return log != null ? log : new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+            }
+        });
     }
 
     public static void main(String[] args) {

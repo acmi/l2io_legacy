@@ -22,6 +22,6 @@
 package acmi.l2.clientmod.crypt.blowfish;
 
 public interface L2Ver21x {
-    public static final byte[] BLOWFISH_KEY_211 = "31==-%&@!^+][;'.]94-\0".getBytes();
-    public static final byte[] BLOWFISH_KEY_212 = "[;'.]94-&@%!^+]-31==\0".getBytes();
+    byte[] BLOWFISH_KEY_211 = "31==-%&@!^+][;'.]94-\0".getBytes();
+    byte[] BLOWFISH_KEY_212 = "[;'.]94-&@%!^+]-31==\0".getBytes();
 }

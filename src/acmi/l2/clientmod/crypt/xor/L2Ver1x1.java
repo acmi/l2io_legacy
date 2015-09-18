@@ -22,9 +22,9 @@
 package acmi.l2.clientmod.crypt.xor;
 
 public interface L2Ver1x1 {
-    public static final int XOR_KEY_111 = 0xAC;
+    int XOR_KEY_111 = 0xAC;
 
-    public static int getXORKey121(String filename) {
+    static int getXORKey121(String filename) {
         filename = filename.toLowerCase();
         int ind = 0;
         for (int i = 0; i < filename.length(); i++)

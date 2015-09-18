@@ -62,7 +62,8 @@ public class UnrealClassLoader {
         return packageLoader.apply(path[0])
                 .getExportTable()
                 .stream()
-                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name) && condition.test(e))
+                .filter(e -> e.getObjectFullName().equalsIgnoreCase(name))
+                .filter(condition)
                 .findAny();
     }
 

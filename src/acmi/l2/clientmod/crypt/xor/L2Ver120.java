@@ -22,9 +22,9 @@
 package acmi.l2.clientmod.crypt.xor;
 
 public interface L2Ver120 {
-    public static final int START_IND = 0xE6;
+    int START_IND = 0xE6;
 
-    public static int getXORKey(int n) {
+    static int getXORKey(int n) {
         int d1 = (n >> 0) & 0xf;
         int d2 = (n >> 4) & 0xf;
         int d3 = (n >> 8) & 0xf;
